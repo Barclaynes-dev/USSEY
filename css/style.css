@@ -1640,6 +1640,11 @@ html[data-theme="light"] .about-hero__stroke {
   color: var(--ink-dim);
 }
 
+/* Story-style progress bar — hidden by default, only shown on mobile (see @media block below) */
+.t-progress {
+  display: none;
+}
+
 
 
 /* ============================================================
@@ -2211,5 +2216,61 @@ html[data-theme="light"] .deco-star svg {
     height: 18px;
     right: 5%;
     top: 92%;
+  }
+}
+/* ============================================================
+   Testimonials: Mobile Story-Style Carousel
+   (Desktop marquee/drag behaviour above is untouched — this only
+   applies at mobile widths, matching the file's existing breakpoint)
+============================================================ */
+@media (max-width: 768px) {
+  .t-track-wrap {
+    -webkit-mask-image: none;
+    mask-image: none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .t-track {
+    overflow: visible;
+    cursor: default;
+    gap: 0;
+  }
+
+  /* Exactly one card visible at a time */
+  .t-track .t-card {
+    flex: 0 0 100%;
+    width: 100%;
+  }
+
+  /* Hide the cloned duplicates used for the desktop infinite marquee —
+     only the 6 original cards are used in the mobile story carousel */
+  .t-track .t-card:nth-child(n+7) {
+    display: none;
+  }
+
+  .t-progress {
+    display: flex;
+    gap: 6px;
+    margin-top: 1.6rem;
+    padding: 0 .25rem;
+  }
+
+  .t-progress__seg {
+    flex: 1;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--line);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .t-progress__fill {
+    position: absolute;
+    inset: 0;
+    width: 0%;
+    background: var(--amber);
+    border-radius: 2px;
   }
 }

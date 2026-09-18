@@ -526,6 +526,10 @@ chips.forEach(chip => {
   let speed = 0.8; // Slowed down slightly
   let scrollPos = 0;
   let setWidth = 0;
+
+  // Mobile gets a discrete "story-style" carousel instead of the continuous
+  // auto-scroll marquee below — everything desktop-related stays untouched.
+  const isMobileT = window.matchMedia('(max-width: 768px)').matches;
   
   requestAnimationFrame(() => {
     if (originalCards.length > 1) {
@@ -601,12 +605,12 @@ chips.forEach(chip => {
     }
     requestAnimationFrame(loop);
   }
-  requestAnimationFrame(loop);
+  if (!isMobileT) requestAnimationFrame(loop);
 
   // Arrows
   const btnPrev = document.querySelector('.t-arrow--prev');
   const btnNext = document.querySelector('.t-arrow--next');
-  if (btnPrev && btnNext) {
+  if (btnPrev && btnNext && !isMobileT) {
     btnPrev.addEventListener('click', () => {
       if (window.gsap) {
         gsap.to(track, { 
@@ -630,6 +634,67 @@ chips.forEach(chip => {
       } else {
         track.scrollBy({ left: 360, behavior: 'smooth' });
       }
+    });
+  }
+
+  /* ---------------- Mobile story-style carousel ----------------
+     One card visible at a time, auto-advances every 4s, arrows still
+     work and reset the timer, and a segmented progress bar at the
+     bottom tracks position — wrapping back to the first card (and
+     resetting the bar) once you pass the last one. */
+  if (isMobileT && btnPrev && btnNext) {
+    const progressWrap = document.getElementById('t-progress');
+    const mobileCards = originalCards; // clones are hidden via CSS, only the 6 real cards are used here
+    const segments = progressWrap ? Array.from(progressWrap.querySelectorAll('.t-progress__fill')) : [];
+    const DURATION = 4000;
+    let index = 0;
+    let timer;
+
+    function updateProgress(){
+      segments.forEach((seg, i) => {
+        if (window.gsap) gsap.killTweensOf(seg);
+        if (i < index) {
+          seg.style.width = '100%';
+        } else if (i === index) {
+          if (window.gsap) {
+            gsap.fromTo(seg, { width: '0%' }, { width: '100%', duration: DURATION / 1000, ease: 'none' });
+          } else {
+            seg.style.width = '100%';
+          }
+        } else {
+          seg.style.width = '0%';
+        }
+      });
+    }
+
+    function startTimer(){
+      clearTimeout(timer);
+      timer = setTimeout(() => goTo(index + 1), DURATION);
+    }
+
+    function goTo(i){
+      index = (i + mobileCards.length) % mobileCards.length;
+      const x = -index * track.clientWidth;
+      if (window.gsap) {
+        gsap.to(track, { x, duration: 0.5, ease: 'power3.inOut' });
+      } else {
+        track.style.transform = `translateX(${x}px)`;
+      }
+      updateProgress();
+      startTimer();
+    }
+
+    btnPrev.addEventListener('click', () => goTo(index - 1));
+    btnNext.addEventListener('click', () => goTo(index + 1));
+
+    window.addEventListener('resize', () => {
+      const x = -index * track.clientWidth;
+      if (window.gsap) gsap.set(track, { x }); else track.style.transform = `translateX(${x}px)`;
+    });
+
+    requestAnimationFrame(() => {
+      updateProgress();
+      startTimer();
     });
   }
 })();
