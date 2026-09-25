@@ -78,142 +78,132 @@
   <main id="top">
 
     <!-- ================= HERO ================= -->
-    <section class="hero" id="hero">
-
-      <!-- ·· Decorative geometry: pills · circles · sparkles ·· -->
+    <section class="hero hero--alt" id="hero">
+      
+      <!-- Decorative geometry -->
       <div class="deco-layer" aria-hidden="true">
-        <!-- Left side (reduced to avoid text overlap) -->
-        <span class="deco-star" style="left:2%;top:15%;animation-delay:-0.8s"><svg viewBox="0 0 20 20" width="15"
-            height="15">
-            <path d="M10 0C10 5.5 14.5 10 20 10C14.5 10 10 14.5 10 20C10 14.5 5.5 10 0 10C5.5 10 10 5.5 10 0Z" />
-          </svg></span>
+        <span class="deco-star" style="left:8%;top:45%;animation-delay:-0.8s"><svg viewBox="0 0 20 20" width="30" height="30" fill="currentColor"><path d="M10 0C10 5.5 14.5 10 20 10C14.5 10 10 14.5 10 20C10 14.5 5.5 10 0 10C5.5 10 10 5.5 10 0Z"/></svg></span>
+        <span class="deco-star" style="right:12%;top:20%;animation-delay:-2s; transform: scale(1.5);"><svg viewBox="0 0 20 20" width="30" height="30" fill="currentColor"><path d="M10 0C10 5.5 14.5 10 20 10C14.5 10 10 14.5 10 20C10 14.5 5.5 10 0 10C5.5 10 10 5.5 10 0Z"/></svg></span>
+        
+        <svg class="deco-squiggle deco-squiggle--1" viewBox="0 0 130 60">
+          <!-- Squiggly body ending at (110, 30) -->
+          <path d="M5,30 C15,10 25,50 35,30 C45,10 55,50 65,30 C75,10 85,50 95,30 L110,30" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <!-- Arrowhead pointing right -->
+          <path d="M98,18 L114,30 L98,42" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
 
-        <!-- Right side (free space, small circles and a star) -->
-        <span class="deco-star" style="right:8%;top:12%;animation-delay:-2s"><svg viewBox="0 0 20 20" width="15"
-            height="15">
-            <path d="M10 0C10 5.5 14.5 10 20 10C14.5 10 10 14.5 10 20C10 14.5 5.5 10 0 10C5.5 10 10 5.5 10 0Z" />
-          </svg></span>
-        <span class="deco-circle" style="width:16px;height:16px;right:15%;top:25%;animation-delay:-1.2s"></span>
-        <span class="deco-circle" style="width:24px;height:24px;right:25%;top:65%;animation-delay:-4.5s"></span>
-        <span class="deco-circle" style="width:12px;height:12px;right:8%;top:75%;animation-delay:-3.1s"></span>
+        <svg class="deco-squiggle deco-squiggle--2" viewBox="0 0 80 80">
+          <path d="M10,10 Q40,10 40,40 T70,70" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
+          <path d="M60,60 L70,70 L60,80" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
 
-        <!-- Bottom-left (kept far left) -->
-        <span class="deco-circle" style="width:18px;height:18px;left:4%;top:85%;animation-delay:-5.5s"></span>
+        <!-- Pen tool nib — left side -->
+        <svg class="deco-doodle" style="left:3%;top:22%;width:44px;opacity:0.45;" viewBox="0 0 40 60">
+          <polygon points="20,2 38,20 20,58 2,20" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linejoin="round"/>
+          <line x1="20" y1="2" x2="20" y2="14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          <circle cx="20" cy="58" r="2.5" fill="currentColor"/>
+        </svg>
+
+        <!-- Dashed target circle — left side lower -->
+        <svg class="deco-doodle" style="left:5%;top:68%;width:52px;opacity:0.3;" viewBox="0 0 60 60">
+          <circle cx="30" cy="30" r="26" stroke="currentColor" stroke-width="1.5" fill="none" stroke-dasharray="5 4"/>
+          <line x1="30" y1="4" x2="30" y2="56" stroke="currentColor" stroke-width="1" stroke-dasharray="3 5" opacity="0.5"/>
+          <line x1="4" y1="30" x2="56" y2="30" stroke="currentColor" stroke-width="1" stroke-dasharray="3 5" opacity="0.5"/>
+        </svg>
+
+        <!-- Grid hashtag — right side -->
+        <svg class="deco-doodle" style="right:4%;top:55%;width:44px;opacity:0.35;" viewBox="0 0 50 50">
+          <line x1="16" y1="5" x2="16" y2="45" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          <line x1="34" y1="5" x2="34" y2="45" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          <line x1="5" y1="18" x2="45" y2="18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          <line x1="5" y1="34" x2="45" y2="34" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+
+        <!-- Bezier curve handles — right side lower -->
+        <svg class="deco-doodle" style="right:6%;top:70%;width:62px;opacity:0.38;" viewBox="0 0 70 40">
+          <path d="M5,35 C20,5 50,5 65,35" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+          <line x1="5" y1="35" x2="20" y2="5" stroke="currentColor" stroke-width="1" stroke-dasharray="3 3" stroke-linecap="round"/>
+          <line x1="65" y1="35" x2="50" y2="5" stroke="currentColor" stroke-width="1" stroke-dasharray="3 3" stroke-linecap="round"/>
+          <circle cx="5" cy="35" r="3" fill="currentColor"/>
+          <circle cx="65" cy="35" r="3" fill="currentColor"/>
+          <rect x="17" y="2" width="6" height="6" stroke="currentColor" stroke-width="1.2" fill="none"/>
+          <rect x="47" y="2" width="6" height="6" stroke="currentColor" stroke-width="1.2" fill="none"/>
+        </svg>
       </div>
 
-
-      <!-- Headline block -->
-      <div class="hero__head" data-slide="left">
-        <p class="hero__eyebrow">Branding &amp; Design Studio</p>
-        <h1 class="hero__headline">Alone, your good<br>
-          <em class="hero-highlight">Together
-            <svg class="hero-highlight__svg" viewBox="0 0 300 120" preserveAspectRatio="none" aria-hidden="true">
-              <path class="hero-highlight__path"
-                d="M 230, 25 C 80, 5 10, 40 20, 75 C 30, 110 160, 115 250, 95 C 290, 85 310, 45 220, 15"
-                stroke="#f2a93b" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"
-                pathLength="1" />
-            </svg>
-          </em> were exceptional
+      <div class="hero__content-alt container">
+        <h1 class="hero__title-alt" data-reveal>
+          Get your 
+          <span class="hero__pill-arrow">
+            <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          <span class="hero__glitch-text">best</span> digital<br>
+          services in <span class="hero__outline-text">USSEY</span>
         </h1>
-      </div>
 
-      <!-- Three-column stage: text · visual · text -->
-      <div class="hero__stage">
-
-        <div class="hero__aside hero__aside--left" data-slide="left">
-          <p>We connect your brand to a real creative &amp; marketing strategy — so it looks right, says the right
-            thing, and lands with the people who matter.</p>
-          <div class="hero__actions">
-            <a href="#contact" class="btn btn--solid">Ready to collaborate?</a>
-            <a href="#work" class="btn btn--text">See the work <span aria-hidden="true">→</span></a>
-          </div>
-        </div>
-
-        <div class="hero__visual" data-slide="right">
-          <div class="hero__stack">
-            <div class="hero__card hero__card--back"
-              style="background-image:url('assets/images/hero/mock-1.jpg'), linear-gradient(135deg,#f2a93b,#e2542d)">
-            </div>
-            <div class="hero__card hero__card--front"
-              style="background-image:url('assets/images/hero/mock-2.jpg'), linear-gradient(135deg,#1a1912,#3fa9dc)">
-              <span class="hero__card-tag">Logo Concept</span>
+        <div class="hero__actions-alt" data-reveal>
+          <a href="#contact" class="btn btn--lime">Get Started</a>
+          <div class="hero__stamp">
+            <svg viewBox="0 0 100 100" class="hero__stamp-text">
+              <path id="curve" d="M 50,50 m -40,0 a 40,40 0 1,1 80,0 a 40,40 0 1,1 -80,0" fill="none" />
+              <text><textPath href="#curve">Try it for free • Try it for free • </textPath></text>
+            </svg>
+            <div class="hero__stamp-center">
+              <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
           </div>
         </div>
-
-        <div class="hero__aside hero__aside--right" data-slide="right">
-          <p>Logos, identity systems, flyers and print work — built to get attention and built to last.</p>
-          <a href="#services" class="btn btn--ghost underline-hover-btn">
-            <span class="underline-wrapper">
-              <span class="underline-hover-text">Explore services</span>
-              <svg class="underline-hover-svg" viewBox="0 0 300 20" preserveAspectRatio="none" aria-hidden="true">
-                <path class="underline-hover-path" d="M 5,15 Q 150,5 295,15" stroke="var(--amber)" stroke-width="4"
-                  fill="none" stroke-linecap="round" stroke-linejoin="round" pathLength="1" />
-              </svg>
-            </span>
-          </a>
-        </div>
-
       </div>
 
+      <!-- Diagonal Marquee -->
+      <div class="hero__diagonal-wrap" data-reveal>
+        <div class="marquee marquee--tags hero__diagonal" aria-hidden="true">
+          <div class="marquee__track hero__diagonal-track">
+            <!-- Copy 1 -->
+            <span>Web Design</span><svg viewBox="0 0 24 24" class="marquee__asterisk"><path d="M12 2v20m-10-10h20m-17-7 14 14m0-14-14 14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" /></svg>
+            <span>App Design</span><svg viewBox="0 0 24 24" class="marquee__asterisk"><path d="M12 2v20m-10-10h20m-17-7 14 14m0-14-14 14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" /></svg>
+            <span>Brand Identity</span><svg viewBox="0 0 24 24" class="marquee__asterisk"><path d="M12 2v20m-10-10h20m-17-7 14 14m0-14-14 14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" /></svg>
+            <span>Logo Design</span><svg viewBox="0 0 24 24" class="marquee__asterisk"><path d="M12 2v20m-10-10h20m-17-7 14 14m0-14-14 14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" /></svg>
+            <span>Print Work</span><svg viewBox="0 0 24 24" class="marquee__asterisk"><path d="M12 2v20m-10-10h20m-17-7 14 14m0-14-14 14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" /></svg>
+            <!-- Copy 2 -->
+            <span>Web Design</span><svg viewBox="0 0 24 24" class="marquee__asterisk"><path d="M12 2v20m-10-10h20m-17-7 14 14m0-14-14 14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" /></svg>
+            <span>App Design</span><svg viewBox="0 0 24 24" class="marquee__asterisk"><path d="M12 2v20m-10-10h20m-17-7 14 14m0-14-14 14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" /></svg>
+            <span>Brand Identity</span><svg viewBox="0 0 24 24" class="marquee__asterisk"><path d="M12 2v20m-10-10h20m-17-7 14 14m0-14-14 14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" /></svg>
+            <span>Logo Design</span><svg viewBox="0 0 24 24" class="marquee__asterisk"><path d="M12 2v20m-10-10h20m-17-7 14 14m0-14-14 14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" /></svg>
+            <span>Print Work</span><svg viewBox="0 0 24 24" class="marquee__asterisk"><path d="M12 2v20m-10-10h20m-17-7 14 14m0-14-14 14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" /></svg>
+            <!-- Copy 3 -->
+            <span>Web Design</span><svg viewBox="0 0 24 24" class="marquee__asterisk"><path d="M12 2v20m-10-10h20m-17-7 14 14m0-14-14 14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" /></svg>
+            <span>App Design</span><svg viewBox="0 0 24 24" class="marquee__asterisk"><path d="M12 2v20m-10-10h20m-17-7 14 14m0-14-14 14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" /></svg>
+            <span>Brand Identity</span><svg viewBox="0 0 24 24" class="marquee__asterisk"><path d="M12 2v20m-10-10h20m-17-7 14 14m0-14-14 14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" /></svg>
+            <span>Logo Design</span><svg viewBox="0 0 24 24" class="marquee__asterisk"><path d="M12 2v20m-10-10h20m-17-7 14 14m0-14-14 14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" /></svg>
+            <span>Print Work</span><svg viewBox="0 0 24 24" class="marquee__asterisk"><path d="M12 2v20m-10-10h20m-17-7 14 14m0-14-14 14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" /></svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero__bottom-alt container">
+        <div class="hero__stats-block" data-slide="left">
+          <p class="hero__stats-num">50k+ Users</p>
+          <div class="hero__stats-row">
+            <div class="hero__avatars">
+              <div class="avatar" style="background:#f2a93b; z-index:4"></div>
+              <div class="avatar" style="background:#e2542d; z-index:3; transform:translateX(-10px)"></div>
+              <div class="avatar" style="background:#3fa9dc; z-index:2; transform:translateX(-20px)"></div>
+              <div class="avatar avatar--plus" style="z-index:1; transform:translateX(-30px)">+</div>
+            </div>
+            <div class="hero__rating">
+              <span style="color:#00b67a; font-size:1.2rem;">★</span> <strong>Trustpilot</strong><br>
+              <small>50,125 Great Review</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero__lead-block" data-reveal>
+          <p>Flexible <strong>solution</strong><br>for all kind of<br>business</p>
+          <a href="#services" class="underline-link" style="margin-top: 1rem; display:inline-block; border-bottom: 1px solid currentColor;">Learn More</a>
+        </div>
+      </div>
     </section>
-
-    <!-- ================= MARQUEE : SERVICES TAGS ================= -->
-    <div class="marquee marquee--tags" aria-hidden="true">
-      <div class="marquee__track">
-        <span>Logo Design</span>
-        <svg viewBox="0 0 24 24" class="marquee__asterisk">
-          <path d="M12 2v20m-10-10h20m-17-7 14 14m0-14-14 14" stroke="currentColor" stroke-width="2.5"
-            stroke-linecap="round" />
-        </svg>
-        <span>Brand Identity</span>
-        <svg viewBox="0 0 24 24" class="marquee__asterisk">
-          <path d="M12 2v20m-10-10h20m-17-7 14 14m0-14-14 14" stroke="currentColor" stroke-width="2.5"
-            stroke-linecap="round" />
-        </svg>
-        <span>Flyer &amp; Print</span>
-        <svg viewBox="0 0 24 24" class="marquee__asterisk">
-          <path d="M12 2v20m-10-10h20m-17-7 14 14m0-14-14 14" stroke="currentColor" stroke-width="2.5"
-            stroke-linecap="round" />
-        </svg>
-        <span>Social Media Design</span>
-        <svg viewBox="0 0 24 24" class="marquee__asterisk">
-          <path d="M12 2v20m-10-10h20m-17-7 14 14m0-14-14 14" stroke="currentColor" stroke-width="2.5"
-            stroke-linecap="round" />
-        </svg>
-        <span>3D Visualization</span>
-        <svg viewBox="0 0 24 24" class="marquee__asterisk">
-          <path d="M12 2v20m-10-10h20m-17-7 14 14m0-14-14 14" stroke="currentColor" stroke-width="2.5"
-            stroke-linecap="round" />
-        </svg>
-
-        <span>Logo Design</span>
-        <svg viewBox="0 0 24 24" class="marquee__asterisk">
-          <path d="M12 2v20m-10-10h20m-17-7 14 14m0-14-14 14" stroke="currentColor" stroke-width="2.5"
-            stroke-linecap="round" />
-        </svg>
-        <span>Brand Identity</span>
-        <svg viewBox="0 0 24 24" class="marquee__asterisk">
-          <path d="M12 2v20m-10-10h20m-17-7 14 14m0-14-14 14" stroke="currentColor" stroke-width="2.5"
-            stroke-linecap="round" />
-        </svg>
-        <span>Flyer &amp; Print</span>
-        <svg viewBox="0 0 24 24" class="marquee__asterisk">
-          <path d="M12 2v20m-10-10h20m-17-7 14 14m0-14-14 14" stroke="currentColor" stroke-width="2.5"
-            stroke-linecap="round" />
-        </svg>
-        <span>Social Media Design</span>
-        <svg viewBox="0 0 24 24" class="marquee__asterisk">
-          <path d="M12 2v20m-10-10h20m-17-7 14 14m0-14-14 14" stroke="currentColor" stroke-width="2.5"
-            stroke-linecap="round" />
-        </svg>
-        <span>3D Visualization</span>
-        <svg viewBox="0 0 24 24" class="marquee__asterisk">
-          <path d="M12 2v20m-10-10h20m-17-7 14 14m0-14-14 14" stroke="currentColor" stroke-width="2.5"
-            stroke-linecap="round" />
-        </svg>
-      </div>
-    </div>
 
     <!-- ================= SERVICES ================= -->
     <section class="services" id="services">
@@ -392,8 +382,8 @@
         <h2 class="stats__title">Trusted by brands worldwide</h2>
         <p class="stats__subtitle">Join the companies making a real impact with their identity</p>
       </div>
-      <div class="stats__grid">
-        <div class="stat-tile" data-reveal>
+      <div class="stats__grid" data-reveal>
+        <div class="stat-tile">
           <div class="stat-tile__num-wrapper">
             <span class="stat-tile__num" data-count="7">0</span>
             <svg class="stat-tile__bar" viewBox="0 0 100 10" preserveAspectRatio="none">
@@ -403,7 +393,7 @@
           <span class="stat-tile__label">Years of experience</span>
           <span class="stat-tile__sub">Mastering the craft</span>
         </div>
-        <div class="stat-tile" data-reveal>
+        <div class="stat-tile">
           <div class="stat-tile__num-wrapper">
             <span class="stat-tile__num" data-count="10">0</span>
             <svg class="stat-tile__bar" viewBox="0 0 100 10" preserveAspectRatio="none">
@@ -413,7 +403,7 @@
           <span class="stat-tile__label">Satisfied brands</span>
           <span class="stat-tile__sub">Across the globe</span>
         </div>
-        <div class="stat-tile" data-reveal>
+        <div class="stat-tile">
           <div class="stat-tile__num-wrapper">
             <span class="stat-tile__num" data-count="300">0</span>
             <svg class="stat-tile__bar" viewBox="0 0 100 10" preserveAspectRatio="none">
@@ -423,7 +413,7 @@
           <span class="stat-tile__label">Design items</span>
           <span class="stat-tile__sub">Delivered on time</span>
         </div>
-        <div class="stat-tile" data-reveal>
+        <div class="stat-tile">
           <div class="stat-tile__num-wrapper">
             <span class="stat-tile__num" data-count="150">0</span>
             <svg class="stat-tile__bar" viewBox="0 0 100 10" preserveAspectRatio="none">

@@ -698,3 +698,72 @@ chips.forEach(chip => {
     });
   }
 })();
+
+/* ---------------- Slow Motion Reveal (Scroll Trigger) ---------------- */
+(function initReveals(){
+  const revealElements = document.querySelectorAll('[data-reveal], [data-slide="left"], [data-slide="right"]');
+  if (!revealElements.length) return;
+
+  const observerOptions = {
+    root: null,
+    rootMargin: '0px 0px -5% 0px',
+    threshold: 0
+  };
+
+  const observer = new IntersectionObserver((entries, obs) => {
+    let delay = 0;
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.style.transitionDelay = `${delay}s`;
+        entry.target.classList.add('is-visible');
+        delay += 0.1;
+        obs.unobserve(entry.target);
+      }
+    });
+  }, observerOptions);
+
+  revealElements.forEach(el => observer.observe(el));
+})();
+
+/* ---------------- Stats Counters ---------------- */
+(function initCounters(){
+  const numbers = document.querySelectorAll('.stat-tile__num');
+  if (!numbers.length) return;
+
+  const observerOptions = {
+    root: null,
+    rootMargin: '0px 0px -5% 0px',
+    threshold: 0
+  };
+
+  const observer = new IntersectionObserver((entries, obs) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const target = parseInt(entry.target.getAttribute('data-count') || 0, 10);
+        const duration = 1500; // ms
+        const startTime = performance.now();
+        
+        const updateCounter = (currentTime) => {
+          const elapsed = currentTime - startTime;
+          const progress = Math.min(elapsed / duration, 1);
+          // ease-out cubic
+          const easeProgress = 1 - Math.pow(1 - progress, 3);
+          const current = Math.floor(easeProgress * target);
+          
+          entry.target.textContent = current + "+";
+          
+          if (progress < 1) {
+            requestAnimationFrame(updateCounter);
+          } else {
+            entry.target.textContent = target + "+";
+          }
+        };
+        
+        requestAnimationFrame(updateCounter);
+        obs.unobserve(entry.target);
+      }
+    });
+  }, observerOptions);
+
+  numbers.forEach(el => observer.observe(el));
+})();
