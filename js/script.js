@@ -39,6 +39,7 @@ mobileMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => 
 (function fluidCanvas(){
   const canvas = document.getElementById('fluid-canvas');
   const hero = document.getElementById('hero');
+  if (!canvas || !hero || window.getComputedStyle(canvas).display === 'none') return;
   const ctx = canvas.getContext('2d');
   const RENDER_SCALE = 0.45; // draw at a fraction of the real size; the blur filter hides the softness
   let w, h, dpr = Math.min(window.devicePixelRatio || 1, 1);
@@ -265,9 +266,8 @@ mobileMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => 
 if (window.gsap && window.ScrollTrigger) {
   gsap.registerPlugin(ScrollTrigger);
 
-  // Hero: left column slides in from the left, right column from the right, on load
-  gsap.to('#hero [data-slide="left"]', { x:0, opacity:1, duration:1, ease:'power3.out', delay:.15 });
-  gsap.to('#hero [data-slide="right"]', { x:0, opacity:1, duration:1, ease:'power3.out', delay:.3 });
+  // Hero intro: centered headline & CTA fade and slide up into view on load
+  gsap.to('#hero [data-reveal], #hero [data-slide="left"]', { x:0, y:0, opacity:1, duration:1, ease:'power3.out', delay:.15 });
 
   // Hero circle: draw after 1s, hold 4s, then erase
   const circlePath = document.querySelector('.hero-highlight__path');
@@ -315,48 +315,11 @@ if (window.gsap && window.ScrollTrigger) {
     });
   });
 
-  // HIW cards — slide in from below on entry (staggered), then image-parallax for depth
-  const hiwCards = document.querySelectorAll('.hiw-card');
-  const hiwImgs  = document.querySelectorAll('.hiw-card__img');
-
-  // Stage 1: cards start hidden below, rise up in sequence
-  gsap.set(hiwCards, { y: 100, opacity: 0 });
-  ScrollTrigger.create({
-    trigger: '.hiw__grid',
-    start: 'top 82%',
-    once: true,
-    onEnter: () => {
-      gsap.to(hiwCards, {
-        y: 0,
-        opacity: 1,
-        duration: 1.0,
-        ease: 'power3.out',
-        stagger: 0.2
-      });
-    }
-  });
-
-  // Stage 2: only the inner image drifts — no conflict with the card entry
-  const imgSpeeds = [25, 15, 32]; // positive = drift down as you scroll past
-  hiwImgs.forEach((img, i) => {
-    gsap.fromTo(img,
-      { yPercent: -15 },
-      {
-        yPercent: imgSpeeds[i] ?? 20,
-        ease: 'none',
-        scrollTrigger: {
-          trigger: img.closest('.hiw-card'),
-          start: 'top bottom',
-          end: 'bottom top',
-          scrub: 1.5
-        }
-      }
-    );
-  });
-
   // Hero card stack parallax
-  gsap.to('.hero__card--back', { y: 40, scrollTrigger: { trigger:'.hero', start:'top top', end:'bottom top', scrub:true } });
-  gsap.to('.hero__card--front', { y: -20, scrollTrigger: { trigger:'.hero', start:'top top', end:'bottom top', scrub:true } });
+  if (document.querySelector('.hero__card--back')) {
+    gsap.to('.hero__card--back', { y: 40, scrollTrigger: { trigger:'.hero', start:'top top', end:'bottom top', scrub:true } });
+    gsap.to('.hero__card--front', { y: -20, scrollTrigger: { trigger:'.hero', start:'top top', end:'bottom top', scrub:true } });
+  }
 
   // Stat counters
   document.querySelectorAll('.stat-tile').forEach(tile => {
@@ -385,6 +348,169 @@ if (window.gsap && window.ScrollTrigger) {
 } else {
   document.querySelectorAll('[data-reveal], [data-slide]').forEach(el => { el.style.opacity = 1; el.style.transform = 'none'; });
 }
+
+
+/* ============================================================
+   How We Work — Vertical Timeline Animations
+   Uses IntersectionObserver for entrance reveals.
+   Scroll-fill on rail via requestAnimationFrame.
+   Per-step node lighting and active-step pulse.
+   Respects prefers-reduced-motion, no-JS fallback.
+============================================================ */
+(function initHIWTimeline() {
+  const timeline = document.querySelector('.hiw__timeline');
+  if (!timeline) return;
+
+  const steps   = Array.from(timeline.querySelectorAll('.hiw__step'));
+  const section = document.querySelector('.hiw');
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const isMobile = () => window.innerWidth < 768;
+
+  /* ── No-JS fallback: body gets .hiw-anim-ready only via JS ── */
+  document.body.classList.add('hiw-anim-ready');
+
+  /* ── Reduced-motion: simple fade, no transform ─────────────── */
+  if (reducedMotion) {
+    const style = document.createElement('style');
+    style.textContent = `
+      body.hiw-anim-ready .hiw__circle,
+      body.hiw-anim-ready .hiw__text {
+        opacity: 0; transform: none !important;
+      }
+      .hiw__circle.is-visible,
+      .hiw__text.is-visible {
+        opacity: 1 !important; transform: none !important;
+        transition: opacity 0.5s ease !important;
+      }
+      .hiw__node.is-active::before {
+        animation: none !important;
+        display: none !important;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  /* ── Per-step IntersectionObserver (entrance reveals) ──────── */
+  const stepObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+
+      const step   = entry.target;
+      const circle = step.querySelector('.hiw__circle');
+      const text   = step.querySelector('.hiw__text');
+
+      if (circle) circle.classList.add('is-visible');
+      if (text) {
+        setTimeout(() => text.classList.add('is-visible'), 175);
+      }
+
+      stepObserver.unobserve(step);
+    });
+  }, {
+    threshold: 0.15
+  });
+
+  steps.forEach(step => stepObserver.observe(step));
+
+  /* ── Measure rail height from first node to last node on mobile ── */
+  function syncRailDimensions() {
+    if (!isMobile() || steps.length < 2) return;
+    const firstNode = steps[0].querySelector('.hiw__node');
+    const lastNode  = steps[steps.length - 1].querySelector('.hiw__node');
+    if (firstNode && lastNode) {
+      const span = lastNode.offsetTop - firstNode.offsetTop;
+      if (span > 0) {
+        timeline.style.setProperty('--hiw-rail-height', `${span}px`);
+      }
+    }
+  }
+
+  syncRailDimensions();
+  window.addEventListener('resize', syncRailDimensions, { passive: true });
+
+  /* ── Scroll-driven Progress Line & Active Step Pulse ────────── */
+  let ticking = false;
+
+  function updateScrollProgress() {
+    ticking = false;
+    const viewH = window.innerHeight;
+
+    if (isMobile() && steps.length >= 2) {
+      const firstNode = steps[0].querySelector('.hiw__node');
+      const lastNode  = steps[steps.length - 1].querySelector('.hiw__node');
+
+      if (firstNode && lastNode) {
+        const triggerY = viewH * 0.55; // Focal trigger line
+        const firstRect = firstNode.getBoundingClientRect();
+        const lastRect  = lastNode.getBoundingClientRect();
+        const totalSpan = lastRect.top - firstRect.top;
+
+        let progress = 0;
+        if (totalSpan > 0) {
+          const scrolled = triggerY - firstRect.top;
+          progress = Math.max(0, Math.min(1, scrolled / totalSpan));
+        } else {
+          progress = firstRect.top <= triggerY ? 1 : 0;
+        }
+
+        timeline.style.setProperty('--hiw-scale', progress.toFixed(4));
+
+        // Light up each node as the fill reaches or passes it
+        steps.forEach((step) => {
+          const node = step.querySelector('.hiw__node');
+          if (!node) return;
+          const nRect = node.getBoundingClientRect();
+          if (nRect.top <= triggerY) {
+            node.classList.add('is-lit');
+          }
+        });
+
+        // Active-step pulse: exactly one node pulses at a time
+        if (!reducedMotion) {
+          let activeIdx = -1;
+          let minDist = Infinity;
+
+          steps.forEach((step, idx) => {
+            const node = step.querySelector('.hiw__node');
+            if (!node) return;
+            const nRect = node.getBoundingClientRect();
+            // In view check
+            if (nRect.top <= viewH * 0.85 && nRect.bottom >= viewH * 0.15) {
+              const dist = Math.abs(nRect.top - triggerY);
+              if (dist < minDist) {
+                minDist = dist;
+                activeIdx = idx;
+              }
+            }
+          });
+
+          steps.forEach((step, idx) => {
+            const node = step.querySelector('.hiw__node');
+            if (!node) return;
+            node.classList.toggle('is-active', idx === activeIdx);
+          });
+        }
+      }
+    } else {
+      // Desktop progress calculation
+      const rect = section ? section.getBoundingClientRect() : timeline.getBoundingClientRect();
+      const rawPct = (viewH - rect.top) / (rect.height + viewH);
+      const pct = Math.max(0, Math.min(1, rawPct));
+      timeline.style.setProperty('--hiw-progress', (pct * 100).toFixed(1) + '%');
+      timeline.style.setProperty('--hiw-scale', pct.toFixed(4));
+    }
+  }
+
+  function onScroll() {
+    if (!ticking) {
+      requestAnimationFrame(updateScrollProgress);
+      ticking = true;
+    }
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  updateScrollProgress();
+})();
 
 
 /* ---------------- Portfolio gallery: cinematic reveal + scroll parallax + magnetic hover ----------------
@@ -501,269 +627,518 @@ chips.forEach(chip => {
   });
 });
 
-/* ---------------- Testimonial Marquee + Arrows ---------------- */
-(function testimonialMarquee(){
+/* ============================================================
+   Testimonials — Seamless Desktop Marquee + Mobile Slideshow
+   ============================================================ */
+(function initTestimonials() {
   const track = document.getElementById('t-track');
+  const progWrap = document.getElementById('t-progress');
+  const btnPrev = document.querySelector('.t-arrow--prev');
+  const btnNext = document.querySelector('.t-arrow--next');
+  const section = document.querySelector('.testimonials');
   if (!track) return;
+
+  const BREAKPOINT = 767;
+  const isMobile = () => window.innerWidth <= BREAKPOINT;
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // 1. Grab pure original cards from HTML (6 cards)
   const originalCards = Array.from(track.querySelectorAll('.t-card'));
-  
-  // Clone cards to create infinite scrolling effect
-  originalCards.forEach(card => {
-    const clone = card.cloneNode(true);
-    clone.removeAttribute('data-reveal');
-    clone.style.opacity = '1';
-    clone.style.transform = 'none';
-    track.appendChild(clone);
-  });
-  originalCards.forEach(card => {
-    const clone = card.cloneNode(true);
-    clone.removeAttribute('data-reveal');
-    clone.style.opacity = '1';
-    clone.style.transform = 'none';
-    track.appendChild(clone);
+  const CARD_COUNT = originalCards.length;
+
+  // 2. Clone cards for desktop marquee (2 sets of clones = 18 cards total)
+  const desktopClones = [];
+  [1, 2].forEach(() => {
+    originalCards.forEach(card => {
+      const clone = card.cloneNode(true);
+      clone.classList.add('t-card--desktop-clone');
+      clone.removeAttribute('data-reveal');
+      clone.style.opacity = '1';
+      clone.style.transform = 'none';
+      track.appendChild(clone);
+      desktopClones.push(clone);
+    });
   });
 
-  let speed = 0.8; // Slowed down slightly
+  // Ensure all cards are visible
+  originalCards.forEach(c => {
+    c.style.opacity = '1';
+    c.style.transform = 'none';
+  });
+
+  /* ──────────────────────────────────────────────────────────
+     DESKTOP MARQUEE CONTROLLER (Continuous Smooth Auto-Scroll)
+     ────────────────────────────────────────────────────────── */
+  let marqueeSpeed = 0.8;
   let scrollPos = 0;
   let setWidth = 0;
-
-  // Mobile gets a discrete "story-style" carousel instead of the continuous
-  // auto-scroll marquee below — everything desktop-related stays untouched.
-  const isMobileT = window.matchMedia('(max-width: 768px)').matches;
-  
-  requestAnimationFrame(() => {
-    if (originalCards.length > 1) {
-      setWidth = (originalCards[1].offsetLeft - originalCards[0].offsetLeft) * originalCards.length;
-    } else {
-      setWidth = track.scrollWidth / 3;
-    }
-    scrollPos = setWidth;
-    track.scrollLeft = setWidth;
-  });
-
   let isHovered = false;
   let isDragging = false;
-  let startX;
-  let scrollLeftStart;
+  let dragStartX = 0;
+  let dragScrollStart = 0;
+  let marqueeRafId = null;
+  let isMarqueeActive = false;
 
-  // Track dragging
-  track.addEventListener('mousedown', (e) => {
+  function measureSetWidth() {
+    if (originalCards.length > 1 && originalCards[1].offsetLeft > originalCards[0].offsetLeft) {
+      return (originalCards[1].offsetLeft - originalCards[0].offsetLeft) * originalCards.length;
+    }
+    return track.scrollWidth > 0 ? track.scrollWidth / 3 : 2184;
+  }
+
+  function startDesktopMarquee() {
+    if (isMarqueeActive) return;
+    isMarqueeActive = true;
+
+    // Show desktop clones
+    desktopClones.forEach(c => { c.style.display = ''; c.style.flex = ''; c.style.width = ''; c.style.margin = ''; });
+    originalCards.forEach(c => { c.style.display = ''; c.style.flex = ''; c.style.width = ''; c.style.margin = ''; });
+
+    track.style.display = 'flex';
+    track.style.width = '100%';
+    track.style.transform = 'none';
+    track.style.transition = 'none';
+    track.style.overflowX = 'scroll';
+    track.style.overflowY = 'hidden';
+
+    // Hide mobile progress bar on desktop
+    if (progWrap) {
+      progWrap.style.display = 'none';
+      progWrap.setAttribute('aria-hidden', 'true');
+    }
+
+    requestAnimationFrame(() => {
+      setWidth = measureSetWidth();
+      if (setWidth > 0) {
+        scrollPos = setWidth;
+        track.scrollLeft = setWidth;
+      }
+    });
+
+    function marqueeLoop() {
+      if (!isMarqueeActive) return;
+
+      if (setWidth === 0) {
+        setWidth = measureSetWidth();
+      }
+
+      if (setWidth > 0) {
+        if (!isHovered && !isDragging) {
+          scrollPos += marqueeSpeed;
+          if (scrollPos >= setWidth * 2) scrollPos -= setWidth;
+          else if (scrollPos <= 0) scrollPos += setWidth;
+          track.scrollLeft = scrollPos;
+        } else {
+          scrollPos = track.scrollLeft;
+          if (scrollPos >= setWidth * 2) {
+            scrollPos -= setWidth;
+            track.scrollLeft = scrollPos;
+          } else if (scrollPos <= 0) {
+            scrollPos += setWidth;
+            track.scrollLeft = scrollPos;
+          }
+        }
+      }
+
+      marqueeRafId = requestAnimationFrame(marqueeLoop);
+    }
+
+    cancelAnimationFrame(marqueeRafId);
+    marqueeRafId = requestAnimationFrame(marqueeLoop);
+  }
+
+  function stopDesktopMarquee() {
+    isMarqueeActive = false;
+    cancelAnimationFrame(marqueeRafId);
+  }
+
+  // Desktop drag listeners
+  track.addEventListener('mousedown', e => {
+    if (isMobile()) return;
     isDragging = true;
-    startX = e.pageX - track.offsetLeft;
-    scrollLeftStart = track.scrollLeft;
+    dragStartX = e.pageX - track.offsetLeft;
+    dragScrollStart = track.scrollLeft;
   });
-  track.addEventListener('mouseleave', () => {
-    isDragging = false;
-    isHovered = false;
-  });
-  track.addEventListener('mouseup', () => {
-    isDragging = false;
-  });
-  track.addEventListener('mouseenter', () => {
-    isHovered = true;
-  });
-  track.addEventListener('mousemove', (e) => {
-    if (!isDragging) return;
+  window.addEventListener('mouseup', () => { isDragging = false; });
+  track.addEventListener('mouseenter', () => { if (!isMobile()) isHovered = true; });
+  track.addEventListener('mouseleave', () => { if (!isMobile()) { isHovered = false; isDragging = false; } });
+  track.addEventListener('mousemove', e => {
+    if (isMobile() || !isDragging) return;
     e.preventDefault();
     const x = e.pageX - track.offsetLeft;
-    const walk = (x - startX) * 2;
-    track.scrollLeft = scrollLeftStart - walk;
+    track.scrollLeft = dragScrollStart - (x - dragStartX) * 1.8;
     scrollPos = track.scrollLeft;
   });
 
-  function loop() {
-    if (setWidth === 0) {
-      requestAnimationFrame(loop);
-      return;
+  /* ──────────────────────────────────────────────────────────
+     MOBILE SLIDESHOW CONTROLLER (Autoplay, Progress Bars, Loop)
+     ────────────────────────────────────────────────────────── */
+  const SLIDE_MS = 5000;
+  const TRANS_MS = 450;
+  let isMobileActive = false;
+  let curIdx = 0;
+  let loopClone = null;
+  let segs = [];
+  let segFills = [];
+  let autoTimer = null;
+  let animStart = null;
+  let pausedAt = null;
+  let isSectionVisible = true;
+  let isTabVisible = true;
+  let isHolding = false;
+  let isTransitioning = false;
+
+  function buildMobileProgress() {
+    if (!progWrap) return;
+    progWrap.innerHTML = '';
+    progWrap.style.display = 'flex';
+    progWrap.setAttribute('role', 'group');
+    progWrap.setAttribute('aria-label', 'Testimonial progress');
+    progWrap.setAttribute('aria-hidden', 'false');
+    segs = [];
+    segFills = [];
+
+    for (let i = 0; i < CARD_COUNT; i++) {
+      const seg = document.createElement('button');
+      seg.type = 'button';
+      seg.className = 't-progress__seg';
+      seg.setAttribute('aria-label', `Go to testimonial ${i + 1} of ${CARD_COUNT}`);
+
+      const fill = document.createElement('span');
+      fill.className = 't-progress__fill';
+      seg.appendChild(fill);
+      progWrap.appendChild(seg);
+
+      segs.push(seg);
+      segFills.push(fill);
+
+      seg.addEventListener('click', () => {
+        if (isMobile()) jumpToMobileCard(i);
+      });
     }
-    
-    // Only auto-scroll if not interacted with or animated
-    if (!isHovered && !isDragging && (!window.gsap || !gsap.isTweening(track))) {
-      scrollPos += speed;
-      
-      // If we scroll past the second set, jump back to the first clone
-      if (scrollPos >= setWidth * 2) {
-        scrollPos -= setWidth;
-      } 
-      // If we scroll backwards past the first clone, jump forward
-      else if (scrollPos <= 0) {
-        scrollPos += setWidth;
-      }
-      
-      track.scrollLeft = scrollPos;
+  }
+
+  function updateMobileBars(activeIdx) {
+    segs.forEach((seg, i) => {
+      seg.classList.toggle('is-done', i < activeIdx);
+      seg.classList.toggle('is-active', i === activeIdx);
+      seg.classList.toggle('is-future', i > activeIdx);
+      seg.setAttribute('aria-current', i === activeIdx ? 'true' : 'false');
+    });
+    segFills.forEach((f, i) => {
+      f.style.animation = 'none';
+      f.style.transform = i < activeIdx ? 'scaleX(1)' : 'scaleX(0)';
+    });
+    if (!reducedMotion && segFills[activeIdx]) {
+      const activeFill = segFills[activeIdx];
+      void activeFill.offsetWidth; // flush reflow
+      activeFill.style.transform = '';
+      activeFill.style.animation = `t-fill ${SLIDE_MS}ms linear forwards`;
+    }
+  }
+
+  function slideToSlot(slot) {
+    if (reducedMotion) {
+      originalCards.forEach((c, i) => {
+        const visible = i === (slot % CARD_COUNT);
+        c.style.opacity = visible ? '1' : '0';
+        c.style.pointerEvents = visible ? 'auto' : 'none';
+      });
+      curIdx = slot % CARD_COUNT;
     } else {
-      // Keep scrollPos synced with user interactions and wrap it if dragged
-      scrollPos = track.scrollLeft;
-      
-      if (scrollPos >= setWidth * 2) {
-        scrollPos -= setWidth;
-        track.scrollLeft = scrollPos;
-      } else if (scrollPos <= 0) {
-        scrollPos += setWidth;
-        track.scrollLeft = scrollPos;
-      }
+      const totalSlots = loopClone ? CARD_COUNT + 1 : CARD_COUNT;
+      track.style.transform = `translateX(-${slot * (100 / totalSlots)}%)`;
+      if (slot < CARD_COUNT) curIdx = slot;
     }
-    requestAnimationFrame(loop);
-  }
-  if (!isMobileT) requestAnimationFrame(loop);
-
-  // Arrows
-  const btnPrev = document.querySelector('.t-arrow--prev');
-  const btnNext = document.querySelector('.t-arrow--next');
-  if (btnPrev && btnNext && !isMobileT) {
-    btnPrev.addEventListener('click', () => {
-      if (window.gsap) {
-        gsap.to(track, { 
-          scrollLeft: track.scrollLeft - 360, 
-          duration: 0.6, 
-          ease: 'power2.out',
-          onUpdate: () => scrollPos = track.scrollLeft
-        });
-      } else {
-        track.scrollBy({ left: -360, behavior: 'smooth' });
-      }
-    });
-    btnNext.addEventListener('click', () => {
-      if (window.gsap) {
-        gsap.to(track, { 
-          scrollLeft: track.scrollLeft + 360, 
-          duration: 0.6, 
-          ease: 'power2.out',
-          onUpdate: () => scrollPos = track.scrollLeft
-        });
-      } else {
-        track.scrollBy({ left: 360, behavior: 'smooth' });
-      }
-    });
+    updateMobileBars(slot % CARD_COUNT);
   }
 
-  /* ---------------- Mobile story-style carousel ----------------
-     One card visible at a time, auto-advances every 4s, arrows still
-     work and reset the timer, and a segmented progress bar at the
-     bottom tracks position — wrapping back to the first card (and
-     resetting the bar) once you pass the last one. */
-  if (isMobileT && btnPrev && btnNext) {
-    const progressWrap = document.getElementById('t-progress');
-    const mobileCards = originalCards; // clones are hidden via CSS, only the 6 real cards are used here
-    const segments = progressWrap ? Array.from(progressWrap.querySelectorAll('.t-progress__fill')) : [];
-    const DURATION = 4000;
-    let index = 0;
-    let timer;
+  function startMobileTimer() {
+    clearTimeout(autoTimer);
+    animStart = performance.now();
+    pausedAt = null;
 
-    function updateProgress(){
-      segments.forEach((seg, i) => {
-        if (window.gsap) gsap.killTweensOf(seg);
-        if (i < index) {
-          seg.style.width = '100%';
-        } else if (i === index) {
-          if (window.gsap) {
-            gsap.fromTo(seg, { width: '0%' }, { width: '100%', duration: DURATION / 1000, ease: 'none' });
-          } else {
-            seg.style.width = '100%';
-          }
-        } else {
-          seg.style.width = '0%';
-        }
+    autoTimer = setTimeout(() => {
+      if (!isMobileActive) return;
+      const nextIdx = (curIdx + 1) % CARD_COUNT;
+
+      if (nextIdx === 0 && !reducedMotion && loopClone) {
+        // Continuous forward loop: slide into clone of card 0
+        isTransitioning = true;
+        track.style.transition = `transform ${TRANS_MS}ms cubic-bezier(.22,1,.36,1)`;
+        slideToSlot(CARD_COUNT); // card 0 clone
+
+        setTimeout(() => {
+          // Invisibly snap to real slot 0
+          track.style.transition = 'none';
+          slideToSlot(0);
+          curIdx = 0;
+          void track.offsetWidth;
+          track.style.transition = `transform ${TRANS_MS}ms cubic-bezier(.22,1,.36,1)`;
+          isTransitioning = false;
+          startMobileTimer();
+        }, TRANS_MS + 20);
+      } else {
+        slideToSlot(nextIdx);
+        startMobileTimer();
+      }
+    }, SLIDE_MS);
+  }
+
+  function jumpToMobileCard(idx) {
+    if (isTransitioning) return;
+    clearTimeout(autoTimer);
+    curIdx = ((idx % CARD_COUNT) + CARD_COUNT) % CARD_COUNT;
+    slideToSlot(curIdx);
+    startMobileTimer();
+  }
+
+  function pauseMobile() {
+    if (pausedAt !== null) return;
+    clearTimeout(autoTimer);
+    pausedAt = performance.now() - (animStart || performance.now());
+    if (!reducedMotion && segFills[curIdx]) {
+      const f = segFills[curIdx];
+      const pct = Math.min(pausedAt / SLIDE_MS, 1);
+      f.style.animation = 'none';
+      f.style.transform = `scaleX(${pct})`;
+    }
+  }
+
+  function resumeMobile() {
+    if (pausedAt === null) return;
+    const remaining = Math.max(SLIDE_MS - pausedAt, 0);
+    pausedAt = null;
+    animStart = performance.now() - (SLIDE_MS - remaining);
+
+    if (!reducedMotion && segFills[curIdx]) {
+      const f = segFills[curIdx];
+      void f.offsetWidth;
+      f.style.transform = '';
+      f.style.animation = `t-fill ${remaining}ms linear forwards`;
+    }
+
+    clearTimeout(autoTimer);
+    autoTimer = setTimeout(() => {
+      jumpToMobileCard((curIdx + 1) % CARD_COUNT);
+    }, remaining);
+  }
+
+  function checkMobilePause() {
+    if (!isMobileActive) return;
+    if (isHolding || !isSectionVisible || !isTabVisible) pauseMobile();
+    else resumeMobile();
+  }
+
+  function startMobileSlideshow() {
+    if (isMobileActive) return;
+    isMobileActive = true;
+
+    // Hide desktop clones completely on mobile
+    desktopClones.forEach(c => { c.style.display = 'none'; });
+
+    // Clean track position
+    track.scrollLeft = 0;
+
+    if (reducedMotion) {
+      track.style.position = 'relative';
+      track.style.width = '100%';
+      track.style.transform = 'none';
+      track.style.overflow = 'hidden';
+      originalCards.forEach((c, i) => {
+        c.style.display = '';
+        c.style.position = i === 0 ? 'relative' : 'absolute';
+        c.style.inset = '0';
+        c.style.flex = '0 0 calc(100% - 28px)';
+        c.style.width = 'calc(100% - 28px)';
+        c.style.margin = '0 auto';
+        c.style.opacity = i === 0 ? '1' : '0';
+        c.style.transition = `opacity ${TRANS_MS}ms ease`;
+        c.style.pointerEvents = i === 0 ? 'auto' : 'none';
+      });
+    } else {
+      // Loop clone of card 0 at the end
+      if (!loopClone) {
+        loopClone = originalCards[0].cloneNode(true);
+        loopClone.setAttribute('aria-hidden', 'true');
+        loopClone.removeAttribute('data-reveal');
+        loopClone.style.opacity = '1';
+        loopClone.style.transform = 'none';
+        track.appendChild(loopClone);
+      }
+      loopClone.style.display = '';
+
+      const totalSlots = CARD_COUNT + 1;
+      const slotPct = 100 / totalSlots;
+
+      track.style.display = 'flex';
+      track.style.width = `${totalSlots * 100}%`;
+      track.style.transition = `transform ${TRANS_MS}ms cubic-bezier(.22,1,.36,1)`;
+      track.style.transform = 'translateX(0)';
+      track.style.overflow = 'visible';
+
+      [...originalCards, loopClone].forEach(c => {
+        c.style.display = '';
+        c.style.flex = `0 0 calc(${slotPct}% - 28px)`;
+        c.style.width = `calc(${slotPct}% - 28px)`;
+        c.style.margin = '0 14px';
+        c.style.opacity = '1';
+        c.style.transform = 'none';
+        c.style.pointerEvents = 'auto';
       });
     }
 
-    function startTimer(){
-      clearTimeout(timer);
-      timer = setTimeout(() => goTo(index + 1), DURATION);
+    buildMobileProgress();
+    curIdx = 0;
+    isTransitioning = false;
+    slideToSlot(0);
+    startMobileTimer();
+  }
+
+  function stopMobileSlideshow() {
+    if (!isMobileActive) return;
+    isMobileActive = false;
+    clearTimeout(autoTimer);
+    isTransitioning = false;
+
+    if (loopClone && loopClone.parentNode === track) {
+      track.removeChild(loopClone);
+    }
+    loopClone = null;
+
+    if (progWrap) {
+      progWrap.innerHTML = '';
+      progWrap.style.display = 'none';
     }
 
-    function goTo(i){
-      index = (i + mobileCards.length) % mobileCards.length;
-      const x = -index * track.clientWidth;
-      if (window.gsap) {
-        gsap.to(track, { x, duration: 0.5, ease: 'power3.inOut' });
-      } else {
-        track.style.transform = `translateX(${x}px)`;
-      }
-      updateProgress();
-      startTimer();
-    }
-
-    btnPrev.addEventListener('click', () => goTo(index - 1));
-    btnNext.addEventListener('click', () => goTo(index + 1));
-
-    window.addEventListener('resize', () => {
-      const x = -index * track.clientWidth;
-      if (window.gsap) gsap.set(track, { x }); else track.style.transform = `translateX(${x}px)`;
+    originalCards.forEach(c => {
+      c.style.display = '';
+      c.style.position = '';
+      c.style.inset = '';
+      c.style.flex = '';
+      c.style.width = '';
+      c.style.margin = '';
+      c.style.opacity = '1';
+      c.style.transform = 'none';
+      c.style.transition = '';
+      c.style.pointerEvents = 'auto';
     });
 
-    requestAnimationFrame(() => {
-      updateProgress();
-      startTimer();
+    track.style.display = '';
+    track.style.width = '';
+    track.style.transition = '';
+    track.style.transform = '';
+    track.style.overflow = '';
+    track.style.position = '';
+  }
+
+  /* ──────────────────────────────────────────────────────────
+     UNIFIED ARROW BUTTONS & INTERACTION
+     ────────────────────────────────────────────────────────── */
+  if (btnPrev) {
+    btnPrev.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (isMobile()) {
+        jumpToMobileCard(curIdx - 1);
+      } else {
+        // Desktop smooth scroll backwards by one card width
+        isHovered = true;
+        track.scrollBy({ left: -364, behavior: 'smooth' });
+        setTimeout(() => {
+          scrollPos = track.scrollLeft;
+          isHovered = false;
+        }, 500);
+      }
     });
   }
-})();
 
-/* ---------------- Slow Motion Reveal (Scroll Trigger) ---------------- */
-(function initReveals(){
-  const revealElements = document.querySelectorAll('[data-reveal], [data-slide="left"], [data-slide="right"]');
-  if (!revealElements.length) return;
-
-  const observerOptions = {
-    root: null,
-    rootMargin: '0px 0px -5% 0px',
-    threshold: 0
-  };
-
-  const observer = new IntersectionObserver((entries, obs) => {
-    let delay = 0;
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        entry.target.style.transitionDelay = `${delay}s`;
-        entry.target.classList.add('is-visible');
-        delay += 0.1;
-        obs.unobserve(entry.target);
+  if (btnNext) {
+    btnNext.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (isMobile()) {
+        jumpToMobileCard(curIdx + 1);
+      } else {
+        // Desktop smooth scroll forwards by one card width
+        isHovered = true;
+        track.scrollBy({ left: 364, behavior: 'smooth' });
+        setTimeout(() => {
+          scrollPos = track.scrollLeft;
+          isHovered = false;
+        }, 500);
       }
     });
-  }, observerOptions);
+  }
 
-  revealElements.forEach(el => observer.observe(el));
-})();
+  // Mobile Touch Swipe & Press-and-Hold
+  let touchStartX = 0, touchStartY = 0;
+  track.addEventListener('touchstart', e => {
+    if (isMobile()) {
+      isHolding = true;
+      checkMobilePause();
+    }
+    touchStartX = e.changedTouches[0].clientX;
+    touchStartY = e.changedTouches[0].clientY;
+  }, { passive: true });
 
-/* ---------------- Stats Counters ---------------- */
-(function initCounters(){
-  const numbers = document.querySelectorAll('.stat-tile__num');
-  if (!numbers.length) return;
-
-  const observerOptions = {
-    root: null,
-    rootMargin: '0px 0px -5% 0px',
-    threshold: 0
-  };
-
-  const observer = new IntersectionObserver((entries, obs) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        const target = parseInt(entry.target.getAttribute('data-count') || 0, 10);
-        const duration = 1500; // ms
-        const startTime = performance.now();
-        
-        const updateCounter = (currentTime) => {
-          const elapsed = currentTime - startTime;
-          const progress = Math.min(elapsed / duration, 1);
-          // ease-out cubic
-          const easeProgress = 1 - Math.pow(1 - progress, 3);
-          const current = Math.floor(easeProgress * target);
-          
-          entry.target.textContent = current + "+";
-          
-          if (progress < 1) {
-            requestAnimationFrame(updateCounter);
-          } else {
-            entry.target.textContent = target + "+";
-          }
-        };
-        
-        requestAnimationFrame(updateCounter);
-        obs.unobserve(entry.target);
+  track.addEventListener('touchend', e => {
+    if (isMobile()) {
+      isHolding = false;
+      checkMobilePause();
+      const dx = touchStartX - e.changedTouches[0].clientX;
+      const dy = touchStartY - e.changedTouches[0].clientY;
+      if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+        jumpToMobileCard(dx > 0 ? curIdx + 1 : curIdx - 1);
       }
-    });
-  }, observerOptions);
+    }
+  }, { passive: true });
 
-  numbers.forEach(el => observer.observe(el));
+  track.addEventListener('touchcancel', () => {
+    if (isMobile()) {
+      isHolding = false;
+      checkMobilePause();
+    }
+  }, { passive: true });
+
+  // Hold with mouse on mobile / tablet touch simulation
+  track.addEventListener('mousedown', () => {
+    if (isMobile()) {
+      isHolding = true;
+      checkMobilePause();
+    }
+  });
+  window.addEventListener('mouseup', () => {
+    if (isMobile() && isHolding) {
+      isHolding = false;
+      checkMobilePause();
+    }
+  });
+
+  // Pause when off-screen or tab hidden
+  if (section && 'IntersectionObserver' in window) {
+    new IntersectionObserver(entries => {
+      isSectionVisible = entries[0].isIntersecting;
+      checkMobilePause();
+    }, { threshold: 0.15 }).observe(section);
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    isTabVisible = document.visibilityState === 'visible';
+    checkMobilePause();
+  });
+
+  /* ──────────────────────────────────────────────────────────
+     RESPONSIVE SWITCHER (Handles resize / initial load)
+     ────────────────────────────────────────────────────────── */
+  function syncMode() {
+    if (isMobile()) {
+      stopDesktopMarquee();
+      startMobileSlideshow();
+    } else {
+      stopMobileSlideshow();
+      startDesktopMarquee();
+    }
+  }
+
+  syncMode();
+  window.addEventListener('resize', syncMode);
 })();
