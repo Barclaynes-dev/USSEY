@@ -2848,3 +2848,17 @@ html[data-theme="light"] .about-hero__quote-bar {
     top: 92%;
   }
 }
+
+
+/* ── Mobile: remove yellow border glow on card hover ─────── */
+@media (max-width: 767px) and (hover: none) {
+  .mod-card:hover,
+  .t-card:hover {
+    border-color: var(--line);
+    transform: none;
+  }
+
+  .mod-card:hover .mod-card__icon svg {
+    stroke: currentColor;
+  }
+}

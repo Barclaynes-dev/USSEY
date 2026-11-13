@@ -9,7 +9,8 @@
 
   // ── State Variables ───────────────────────────────────────
   const allProjects = window.GALLERY_PROJECTS || [];
-  let filteredProjects = [...allProjects];
+  let shuffledProjects = [...allProjects];
+  let filteredProjects = [...shuffledProjects];
   let activeCategories = new Set();
   let searchQuery = '';
   let renderedCount = 0;
@@ -22,13 +23,14 @@
   let savedScrollY = 0;
   let panelTriggerBtn = null;
   let viewerTriggerCard = null;
+  let lastShuffledIds = [];
 
   let debounceTimer = null;
   let sentinelObserver = null;
 
   // ── DOM Element Cache ─────────────────────────────────────
   let panel, panelCloseBtn, panelScroll, masonryGrid, sentinelEl, spinnerEl, emptyEl;
-  let searchInput, searchClearBtn, countBadgeEl, chipsRowEl;
+  let headerEl, searchInput, searchClearBtn, countBadgeEl, chipsRowEl, chipsWrapEl;
   let filterToggleBtn, filterDialog, filterBackdrop, filterCloseBtn, filterListEl, filterClearBtn;
   let viewer, viewerCloseBtn, viewerPrevBtn, viewerNextBtn;
   let viewerImg, viewerThumb, viewerShimmer, viewerCounter, viewerTitle, viewerCat, viewerDesc, viewerTags;
@@ -37,6 +39,7 @@
 
   function cacheDom() {
     panel = document.getElementById('gallery-panel');
+    headerEl = document.getElementById('gallery-panel-header');
     panelCloseBtn = document.getElementById('gallery-panel-close');
     panelScroll = document.getElementById('gallery-panel-scroll');
     masonryGrid = document.getElementById('gallery-masonry');
@@ -48,6 +51,7 @@
     searchClearBtn = document.getElementById('gallery-search-clear');
     countBadgeEl = document.getElementById('gallery-count-badge');
     chipsRowEl = document.getElementById('gallery-chips-row');
+    chipsWrapEl = document.getElementById('gallery-chips-wrap');
 
     filterToggleBtn = document.getElementById('gallery-filter-toggle');
     filterDialog = document.getElementById('gallery-filter-dialog');
@@ -115,6 +119,69 @@
       document.documentElement.style.scrollBehavior = originalHtmlScrollBehavior;
       document.body.style.scrollBehavior = originalBodyScrollBehavior;
     });
+  }
+
+  // ── Fisher-Yates Shuffle & Category Clumping Smoothing ─────
+  function fisherYatesShuffle(arr) {
+    const result = [...arr];
+    for (let i = result.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const temp = result[i];
+      result[i] = result[j];
+      result[j] = temp;
+    }
+    return result;
+  }
+
+  function smoothCategoryClumping(list) {
+    // Make sure the same category doesn't appear more than twice in a row among the first 8 items
+    const maxCheck = Math.min(8, list.length);
+    for (let i = 2; i < maxCheck; i++) {
+      if (
+        list[i].category &&
+        list[i].category === list[i - 1].category &&
+        list[i].category === list[i - 2].category
+      ) {
+        // Find a later item (from i + 1 onwards) with a different category to swap with
+        let swapIndex = -1;
+        for (let j = i + 1; j < list.length; j++) {
+          if (list[j].category && list[j].category !== list[i].category) {
+            swapIndex = j;
+            break;
+          }
+        }
+        if (swapIndex !== -1) {
+          const temp = list[i];
+          list[i] = list[swapIndex];
+          list[swapIndex] = temp;
+        }
+      }
+    }
+    return list;
+  }
+
+  function isSameOrder(a, bIds) {
+    if (!a || !bIds || a.length !== bIds.length || a.length <= 1) return false;
+    return a.every((item, idx) => item.id === bIds[idx]);
+  }
+
+  function shuffleGalleryProjects() {
+    if (allProjects.length <= 1) {
+      shuffledProjects = [...allProjects];
+      return;
+    }
+
+    let shuffled = fisherYatesShuffle(allProjects);
+    shuffled = smoothCategoryClumping(shuffled);
+
+    // If with few items the new shuffle matches the previous one, reshuffle once more
+    if (lastShuffledIds.length > 0 && isSameOrder(shuffled, lastShuffledIds)) {
+      shuffled = fisherYatesShuffle(allProjects);
+      shuffled = smoothCategoryClumping(shuffled);
+    }
+
+    lastShuffledIds = shuffled.map(p => p.id);
+    shuffledProjects = shuffled;
   }
 
   // ── Data-Driven Categories ────────────────────────────────
@@ -232,7 +299,7 @@
   function applyFilters() {
     const q = searchQuery.toLowerCase().trim();
 
-    filteredProjects = allProjects.filter(item => {
+    filteredProjects = shuffledProjects.filter(item => {
       // Category match: if no active categories, matches all; else item must match one of the active categories
       const catMatch = activeCategories.size === 0 || activeCategories.has(item.category);
 
@@ -254,6 +321,10 @@
     // Reset render batch
     renderedCount = 0;
     masonryGrid.innerHTML = '';
+
+    // Scroll panel back to top and show chips
+    if (panel) panel.scrollTop = 0;
+    showStrip();
 
     if (filteredProjects.length === 0) {
       emptyEl.classList.add('is-visible');
@@ -280,6 +351,7 @@
     item.setAttribute('role', 'button');
     item.setAttribute('aria-label', `View ${project.title} - ${project.category}`);
     item.dataset.index = index;
+    item.dataset.id = project.id;
 
     // Media wrapper with natural aspect ratio to eliminate layout shift
     const mediaWrap = document.createElement('div');
@@ -369,11 +441,8 @@
 
     // Click & Keyboard interactions
     const openLightbox = () => {
-      const idx = filteredProjects.findIndex(p => p.id === project.id);
-      if (idx !== -1) {
-        viewerTriggerCard = item;
-        openViewer(idx);
-      }
+      viewerTriggerCard = item;
+      openViewerById(project.id);
     };
 
     item.addEventListener('click', openLightbox);
@@ -436,7 +505,7 @@
           }
         });
       }, {
-        root: panelScroll,
+        root: panel,
         rootMargin: '400px',
         threshold: 0.05
       });
@@ -448,6 +517,17 @@
   }
 
   // ── Lightbox Slider (Viewer) ──────────────────────────────
+  function openViewerById(id) {
+    const idx = filteredProjects.findIndex(p => p.id === id);
+    if (idx !== -1) {
+      if (masonryGrid) {
+        const card = masonryGrid.querySelector(`.gallery-item[data-id="${id}"]`);
+        if (card) viewerTriggerCard = card;
+      }
+      openViewer(idx);
+    }
+  }
+
   function openViewer(index) {
     if (index < 0 || index >= filteredProjects.length) return;
     currentViewerIndex = index;
@@ -463,16 +543,23 @@
 
   function closeViewer() {
     if (!isViewerOpen) return;
+    const currentProject = filteredProjects[currentViewerIndex];
     isViewerOpen = false;
     viewer.classList.remove('is-open');
     viewer.setAttribute('aria-hidden', 'true');
 
-    // Return focus to triggering card in gallery without scrolling
-    if (viewerTriggerCard && typeof viewerTriggerCard.focus === 'function') {
+    // Return focus to corresponding card in gallery by ID without scrolling
+    let targetCard = viewerTriggerCard;
+    if (currentProject && masonryGrid) {
+      const match = masonryGrid.querySelector(`.gallery-item[data-id="${currentProject.id}"]`);
+      if (match) targetCard = match;
+    }
+
+    if (targetCard && typeof targetCard.focus === 'function') {
       try {
-        viewerTriggerCard.focus({ preventScroll: true });
+        targetCard.focus({ preventScroll: true });
       } catch (e) {
-        viewerTriggerCard.focus();
+        targetCard.focus();
       }
     }
   }
@@ -645,6 +732,11 @@
   function openFilterDialog() {
     isFilterDialogOpen = true;
 
+    // Update aria-expanded on filter toggle
+    if (filterToggleBtn) {
+      filterToggleBtn.setAttribute('aria-expanded', 'true');
+    }
+
     // Position under filter toggle button on desktop
     if (window.innerWidth >= 768 && filterToggleBtn && filterDialog) {
       const rect = filterToggleBtn.getBoundingClientRect();
@@ -663,6 +755,7 @@
       filterDialog.classList.add('is-open');
       filterDialog.setAttribute('aria-hidden', 'false');
     }
+    showStrip();
     if (filterBackdrop) {
       filterBackdrop.classList.add('is-open');
       filterBackdrop.setAttribute('aria-hidden', 'false');
@@ -672,6 +765,12 @@
 
   function closeFilterDialog() {
     isFilterDialogOpen = false;
+
+    // Update aria-expanded on filter toggle
+    if (filterToggleBtn) {
+      filterToggleBtn.setAttribute('aria-expanded', 'false');
+    }
+
     if (filterDialog) {
       filterDialog.classList.remove('is-open');
       filterDialog.setAttribute('aria-hidden', 'true');
@@ -700,15 +799,28 @@
 
     lockBodyScroll();
 
+    // Fresh Fisher-Yates shuffle on every open
+    shuffleGalleryProjects();
+
     panel.classList.add('is-open');
     panel.setAttribute('aria-hidden', 'false');
 
-    // First time opening: populate and apply filters
+    // Populate and apply filters with shuffled order
     renderCategoryControls();
     applyFilters();
 
-    // Reset panel scroll to top
-    if (panelScroll) panelScroll.scrollTop = 0;
+    // Reset panel scroll to top & ensure chips strip is shown
+    if (panel) panel.scrollTop = 0;
+    showStrip();
+    requestAnimationFrame(() => {
+      updateHeaderHeights();
+    });
+
+    // Focus panel so keyboard scrolling works immediately
+    panel.setAttribute('tabindex', '-1');
+    setTimeout(() => {
+      try { panel.focus({ preventScroll: true }); } catch(e) {}
+    }, 50);
 
     // Focus close button for accessibility without causing page scroll
     setTimeout(() => {
@@ -835,6 +947,26 @@
       panelCloseBtn.addEventListener('click', closePanel);
     }
 
+    // 2b. Mobile logo home-link: close drawer, then navigate to #top (no smooth scroll)
+    const logoLink = document.getElementById('gallery-panel-logo');
+    if (logoLink) {
+      logoLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        // Close the drawer (restores body scroll and scroll position) then jump to top
+        if (isPanelOpen) {
+          closePanel();
+        }
+        // Disable smooth scroll, jump to top, then restore whatever behavior was set
+        const prevBehavior = document.documentElement.style.scrollBehavior;
+        document.documentElement.style.scrollBehavior = 'auto';
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+        // Restore in next frame so CSS smooth-scroll re-enables after the jump
+        requestAnimationFrame(() => {
+          document.documentElement.style.scrollBehavior = prevBehavior;
+        });
+      });
+    }
+
     // 3. Search input with debounce ~250ms
     if (searchInput) {
       searchInput.addEventListener('input', (e) => {
@@ -898,6 +1030,160 @@
     setupViewerTouchGestures();
     setupKeyboardHandling();
     setupInfiniteScrollObserver();
+    setupChipsScrollBehavior();
+    updateHeaderHeights();
+
+    // 8. Hash deep link support
+    checkHashDeepLink();
+    window.addEventListener('hashchange', checkHashDeepLink);
+  }
+
+  // ── URL Hash Deep Linking ─────────────────────────────────
+  function checkHashDeepLink() {
+    const rawHash = (window.location.hash || '').replace(/^#/, '').trim();
+    if (!rawHash) return;
+
+    let targetId = rawHash;
+    if (rawHash.startsWith('project=')) {
+      targetId = rawHash.replace('project=', '');
+    } else if (rawHash.startsWith('project-') && !allProjects.some(p => p.id === rawHash)) {
+      targetId = rawHash.replace('project-', '');
+    }
+
+    const found = allProjects.find(p => p.id === targetId || p.id === rawHash);
+    if (found) {
+      if (!isPanelOpen) {
+        openPanel();
+      }
+      setTimeout(() => {
+        openViewerById(found.id);
+      }, 60);
+    }
+  }
+
+  // ── Header & Strip Heights Measurement ────────────────────
+  function updateHeaderHeights() {
+    if (!panel) return;
+    const topbar = panel.querySelector('.gallery-panel__topbar');
+    if (topbar) {
+      const rect = topbar.getBoundingClientRect();
+      const topbarH = rect.height || topbar.offsetHeight;
+      if (topbarH > 0) {
+        panel.style.setProperty('--topbar-height', `${topbarH}px`);
+        document.documentElement.style.setProperty('--topbar-height', `${topbarH}px`);
+      }
+    }
+    if (chipsWrapEl && !isStripHidden) {
+      const stripRect = chipsWrapEl.getBoundingClientRect();
+      const stripH = stripRect.height || chipsWrapEl.offsetHeight;
+      if (stripH > 0) {
+        panel.style.setProperty('--strip-height', `${stripH}px`);
+        document.documentElement.style.setProperty('--strip-height', `${stripH}px`);
+      }
+    }
+  }
+
+  // ── Chips Strip Visibility (Overlay Transition) ───────────
+  let isStripHidden = false;
+  let stripTransitionTimer = null;
+
+  function hideStrip() {
+    if (isStripHidden) return;
+    isStripHidden = true;
+    if (chipsWrapEl) chipsWrapEl.classList.add('is-hidden');
+    if (headerEl) {
+      headerEl.classList.add('is-strip-hidden');
+      headerEl.classList.add('is-header-hidden');
+    }
+
+    clearTimeout(stripTransitionTimer);
+    stripTransitionTimer = setTimeout(() => {
+      if (isStripHidden && chipsWrapEl) {
+        chipsWrapEl.style.visibility = 'hidden';
+        chipsWrapEl.setAttribute('aria-hidden', 'true');
+        chipsWrapEl.setAttribute('inert', '');
+      }
+    }, 280);
+  }
+
+  function showStrip() {
+    clearTimeout(stripTransitionTimer);
+    if (chipsWrapEl) {
+      chipsWrapEl.style.visibility = 'visible';
+      chipsWrapEl.removeAttribute('inert');
+      chipsWrapEl.setAttribute('aria-hidden', 'false');
+      chipsWrapEl.classList.remove('is-hidden');
+    }
+    if (headerEl) {
+      headerEl.classList.remove('is-strip-hidden');
+      headerEl.classList.remove('is-header-hidden');
+    }
+    isStripHidden = false;
+  }
+
+  // ── Chips hide/show on scroll ─────────────────────────────
+  function setupChipsScrollBehavior() {
+    if (!panel || !chipsWrapEl) return;
+
+    let lastScrollY = 0;
+    let rafId = null;
+    const THRESHOLD = 10;
+
+    function shouldKeepChipsVisible() {
+      return (
+        isFilterDialogOpen ||
+        (searchInput && document.activeElement === searchInput) ||
+        panel.scrollTop < 1
+      );
+    }
+
+    panel.addEventListener('scroll', () => {
+      if (rafId) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        const currentY = panel.scrollTop;
+        const delta = currentY - lastScrollY;
+
+        if (currentY <= 1) {
+          // Always show at top
+          showStrip();
+        } else if (!shouldKeepChipsVisible() && delta > THRESHOLD) {
+          hideStrip();
+        } else if (delta < -THRESHOLD) {
+          showStrip();
+        }
+
+        lastScrollY = currentY;
+      });
+    }, { passive: true });
+
+    // Always show chips when search is focused
+    if (searchInput) {
+      searchInput.addEventListener('focus', () => {
+        showStrip();
+      });
+    }
+
+    // Keep heights in sync on window resize
+    window.addEventListener('resize', () => {
+      updateHeaderHeights();
+    }, { passive: true });
+
+    // Keep heights in sync on font load
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => {
+        updateHeaderHeights();
+      });
+    }
+
+    // Observe size changes directly if supported
+    if (typeof ResizeObserver !== 'undefined') {
+      const ro = new ResizeObserver(() => {
+        updateHeaderHeights();
+      });
+      const topbar = panel.querySelector('.gallery-panel__topbar');
+      if (topbar) ro.observe(topbar);
+    }
   }
 
   // Run on DOM ready
