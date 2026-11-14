@@ -800,6 +800,26 @@ html[data-theme="light"] .icon-moon {
   margin-top: 2.2rem;
 }
 
+/* SVG arrows inside CTA buttons ("Let's collaborate" and "View more work") */
+.hero__cta-arrow,
+.work__more-arrow {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 2px;
+  transition: transform 0.3s var(--ease);
+}
+
+.hero__cta-arrow svg,
+.work__more-arrow svg {
+  display: block;
+  stroke: currentColor;
+}
+
+.hero__cta:hover .hero__cta-arrow,
+.work__more:hover .work__more-arrow {
+  transform: translateX(5px);
+}
+
 /* ── Three-column stage: aside · visual · aside ───────────── */
 .hero__stage {
   display: grid;
@@ -1585,6 +1605,94 @@ html[data-theme="light"] .about-hero__stroke {
 /* ============================================================
    Work / Portfolio
 ============================================================ */
+/* ── Selected Work: "Project Gallery" shortcut arrow button ── */
+.work__heading-nowrap {
+  white-space: nowrap;
+}
+
+.work__gallery-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  position: relative;
+  top: -0.08em;
+  margin-left: 0.35em;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--amber);
+  cursor: pointer;
+  line-height: 1;
+  font-size: inherit;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+
+/* 44x44px minimum tap target without changing visual size */
+.work__gallery-btn::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+/* Chunky up-right diagonal arrow sized in em relative to heading */
+.work__gallery-btn svg {
+  width: 0.82em;
+  height: 0.82em;
+  display: block;
+  overflow: visible;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+}
+
+/* Accessible focus ring in yellow accent */
+.work__gallery-btn:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* Desktop hover & keyboard focus: nudge diagonally up and right by 5px */
+@media (hover: hover) and (pointer: fine) {
+  .work__gallery-btn:hover svg,
+  .work__gallery-btn:focus-visible svg {
+    transform: translate(5px, -5px);
+  }
+}
+
+/* On press: scale down slightly (0.94) */
+.work__gallery-btn:active svg {
+  transform: scale(0.94);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .work__gallery-btn:active svg {
+    transform: translate(5px, -5px) scale(0.94);
+  }
+}
+
+/* Respect reduced motion: no movement, gentle opacity change instead */
+@media (prefers-reduced-motion: reduce) {
+  .work__gallery-btn svg {
+    transition: opacity 0.2s ease !important;
+  }
+  .work__gallery-btn:hover svg,
+  .work__gallery-btn:focus-visible svg {
+    transform: none !important;
+    opacity: 0.8;
+  }
+  .work__gallery-btn:active svg {
+    transform: none !important;
+    opacity: 0.65;
+  }
+}
+
 .work__filters {
   display: flex;
   gap: .6rem;
@@ -1616,88 +1724,174 @@ html[data-theme="light"] .about-hero__stroke {
 
 .work__grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  grid-auto-rows: 260px;
-  gap: 1.2rem;
-  margin-top: 1rem;
-  perspective: 1000px;
+  grid-template-columns: repeat(var(--masonry-cols, 3), 1fr);
+  gap: 24px;
+  align-items: start;
+  width: 100%;
+  margin-top: 2.2rem;
 }
 
-.work__grid.is-fan {
-  display: block;
-  position: relative;
-  height: 460px;
-  margin-top: 3.5rem;
+@media (max-width: 1023px) {
+  .work__grid {
+    grid-template-columns: repeat(var(--masonry-cols, 2), 1fr);
+    gap: 20px;
+  }
 }
 
-.work__grid.is-fan .w-card {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  width: 220px;
-  height: 300px;
-  margin-left: -110px;
-  will-change: transform;
+@media (max-width: 767px) {
+  .work__grid {
+    grid-template-columns: repeat(var(--masonry-cols, 2), 1fr);
+    gap: 14px;
+    margin-top: 1.5rem;
+  }
+}
+
+.work__masonry-col {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+@media (max-width: 1023px) {
+  .work__masonry-col {
+    gap: 20px;
+  }
+}
+
+@media (max-width: 767px) {
+  .work__masonry-col {
+    gap: 14px;
+  }
 }
 
 .w-card {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  background: transparent;
+  cursor: pointer;
+  outline: none;
+  transition: transform 0.22s ease-out;
+}
+
+.w-card:focus-visible {
+  outline: 2px solid var(--accent, #f2a93b);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
+.w-card__media-wrap {
+  position: relative;
+  width: 100%;
   border-radius: 8px;
   overflow: hidden;
-  cursor: pointer;
-  transform-style: preserve-3d;
-  will-change: transform;
-  transition: box-shadow 0.45s ease, opacity 0.4s ease;
+  background-color: var(--bg-alt, #191815);
 }
 
-.w-card--wide {
-  grid-column: span 2;
+.w-card__img {
+  width: 100%;
+  height: auto;
+  display: block;
+  opacity: 0;
+  transition: opacity 0.4s ease, transform 0.22s ease-out;
 }
 
-.w-card--tall {
-  grid-row: span 2;
+.w-card__img.is-loaded {
+  opacity: 1;
 }
 
-.w-card__media {
+@media (hover: hover) and (pointer: fine) {
+  .w-card:hover .w-card__img {
+    transform: scale(1.02);
+  }
+}
+
+@media (hover: none) {
+  .w-card:hover .w-card__img {
+    transform: none;
+  }
+}
+
+.w-card__skeleton {
   position: absolute;
   inset: 0;
-  transition: transform .7s var(--ease);
-  background-size: cover;
-  background-position: center;
+  z-index: 1;
+  transition: opacity 0.35s ease;
 }
 
-.w-card:hover .w-card__media {
-  transform: scale(1.08);
+.w-card__skeleton.is-hidden {
+  opacity: 0;
+  pointer-events: none;
 }
 
-.w-card__meta {
+.w-card__fallback {
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -8px;
-  /* extend past bottom edge */
-  padding: 1.4rem;
-  padding-bottom: calc(1.4rem + 8px);
-  /* compensate for negative bottom */
-  background: linear-gradient(to top, rgba(0, 0, 0, .7), transparent 70%);
-  transform: translateY(0);
-  transition: transform .5s var(--ease);
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: var(--bg-raised, #1f1f23);
+  color: var(--ink-dim, rgba(255, 255, 255, 0.6));
+  font-size: 0.82rem;
+  text-align: center;
+  padding: 1rem;
+  z-index: 1;
 }
 
-.w-card:hover .w-card__meta {
-  transform: translateY(-6px);
+.w-card__caption {
+  margin-top: 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
 }
 
-.w-card__meta h3 {
-  color: #fff;
+.w-card__cat {
+  font-family: var(--font-body, system-ui, sans-serif);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent, #f2a93b);
+}
+
+.w-card__title {
   font-family: 'Trap', sans-serif;
   font-weight: 700;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
+  line-height: 1.3;
+  color: #fff;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.w-card__meta span {
-  color: rgba(255, 255, 255, .75);
-  font-size: .82rem;
+@media (max-width: 767px) {
+  .w-card__caption {
+    margin-top: 9px;
+    gap: 3px;
+  }
+
+  .w-card__cat {
+    font-size: 0.65rem;
+    letter-spacing: 0.06em;
+  }
+
+  .w-card__title {
+    font-size: 0.88rem;
+    line-height: 1.25;
+    -webkit-line-clamp: 2;
+  }
 }
 
 .w-card.is-hidden {
@@ -2313,14 +2507,6 @@ html[data-theme="light"] .about-hero__quote-bar {
     grid-template-columns: 1fr;
   }
 
-  .work__grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .w-card--wide {
-    grid-column: span 2;
-  }
-
   .footer__top {
     grid-template-columns: 1fr;
     gap: 2rem;
@@ -2373,17 +2559,6 @@ html[data-theme="light"] .about-hero__quote-bar {
 
   .stats__grid {
     grid-template-columns: 1fr 1fr;
-  }
-
-  .work__grid {
-    grid-template-columns: 1fr;
-    grid-auto-rows: 220px;
-  }
-
-  .w-card--wide,
-  .w-card--tall {
-    grid-column: span 1;
-    grid-row: span 1;
   }
 
   .work__filters {

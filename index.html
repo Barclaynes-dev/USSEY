@@ -199,7 +199,7 @@
         <p class="hero__eyebrow">Branding &amp; Design Studio</p>
         <h1 class="hero__headline">Alone, your good.<br>Together were exceptional.</h1>
         <div class="hero__actions">
-          <a href="#contact" class="btn btn--ghost">Let's collaborate <span aria-hidden="true">→</span></a>
+          <a href="#contact" class="btn btn--ghost hero__cta">Let's collaborate <span class="hero__cta-arrow" aria-hidden="true"><svg viewBox="0 0 20 14" width="20" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="0" y1="7" x2="18" y2="7"/><polyline points="12,1 18,7 12,13"/></svg></span></a>
         </div>
       </div>
 
@@ -615,7 +615,7 @@
       <div class="section-head section-head--split">
         <div>
           <p class="eyebrow" data-reveal>Selected work</p>
-          <h2 data-reveal>Project Gallery</h2>
+          <h2 data-reveal>Project <span class="work__heading-nowrap">Gallery<button type="button" class="work__gallery-btn" id="work-gallery-trigger" data-gallery-open aria-label="Open full project archive" aria-haspopup="dialog"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.8" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><line x1="5.5" y1="18.5" x2="18.5" y2="5.5"></line><polyline points="9 5.5 18.5 5.5 18.5 15"></polyline></svg></button></span></h2>
         </div>
         <div class="work__filters" data-reveal>
           <button class="chip is-active" data-filter="all">All</button>
@@ -625,71 +625,11 @@
         </div>
       </div>
 
-      <div class="work__grid" id="work-grid">
-
-        <article class="w-card w-card--wide" data-cat="logo" data-reveal>
-          <div class="w-card__media"
-            style="background-image:url('assets/images/work/pattern.png'), linear-gradient(135deg,#f2a93b,#e2542d)">
-          </div>
-          <div class="w-card__meta">
-            <h3>Trustix</h3>
-            <span>Logo Design</span>
-          </div>
-        </article>
-
-        <article class="w-card" data-cat="brand" data-reveal>
-          <div class="w-card__media"
-            style="background-image:url('assets/images/work/pattern.png'), linear-gradient(135deg,#3fa9dc,#1a1912)">
-          </div>
-          <div class="w-card__meta">
-            <h3>Project name</h3>
-            <span>Brand Identity</span>
-          </div>
-        </article>
-
-        <article class="w-card" data-cat="print" data-reveal>
-          <div class="w-card__media"
-            style="background-image:url('assets/images/work/pattern.png'), linear-gradient(135deg,#e2542d,#7c2b1a)">
-          </div>
-          <div class="w-card__meta">
-            <h3>Project name</h3>
-            <span>Flyer &amp; Print</span>
-          </div>
-        </article>
-
-        <article class="w-card w-card--tall" data-cat="brand" data-reveal>
-          <div class="w-card__media"
-            style="background-image:url('assets/images/work/pattern.png'), linear-gradient(135deg,#1a1912,#3fa9dc)">
-          </div>
-          <div class="w-card__meta">
-            <h3>Project name</h3>
-            <span>Brand Identity</span>
-          </div>
-        </article>
-
-        <article class="w-card" data-cat="logo" data-reveal>
-          <div class="w-card__media"
-            style="background-image:url('assets/images/work/pattern.png'), linear-gradient(135deg,#f2a93b,#3fa9dc)">
-          </div>
-          <div class="w-card__meta">
-            <h3>Project name</h3>
-            <span>Logo Design</span>
-          </div>
-        </article>
-
-        <article class="w-card" data-cat="print" data-reveal>
-          <div class="w-card__media"
-            style="background-image:url('assets/images/work/pattern.png'), linear-gradient(135deg,#7c2b1a,#f2a93b)">
-          </div>
-          <div class="w-card__meta">
-            <h3>Project name</h3>
-            <span>Flyer &amp; Print</span>
-          </div>
-        </article>
-
+      <div class="work__grid" id="work-grid" aria-label="Selected Work">
+        <!-- Dynamically rendered from shared gallery data (HOME_FEATURED_CONFIG) -->
       </div>
 
-      <a href="#" class="btn btn--ghost work__more" data-reveal>View more work <span aria-hidden="true">→</span></a>
+      <a href="#" class="btn btn--ghost work__more" data-reveal>View more work <span class="work__more-arrow" aria-hidden="true"><svg viewBox="0 0 20 14" width="20" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="0" y1="7" x2="18" y2="7"/><polyline points="12,1 18,7 12,13"/></svg></span></a>
     </section>
 
     <!-- ================= TESTIMONIALS ================= -->
@@ -1027,8 +967,8 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
-  <script src="js/script.js"></script>
   <script src="js/gallery-data.js"></script>
+  <script src="js/script.js"></script>
   <script src="js/gallery-panel.js"></script>
 </body>
 

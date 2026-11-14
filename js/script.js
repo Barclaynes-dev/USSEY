@@ -513,117 +513,316 @@ if (window.gsap && window.ScrollTrigger) {
 })();
 
 
-/* ---------------- Portfolio gallery: cinematic reveal + scroll parallax + magnetic hover ----------------
-   Cards stagger in from below with a blur-clear on scroll enter. Each card
-   drifts at a slightly different speed on scroll for a depth-layer parallax.
-   Hovering lifts a card with cursor-tracked 3D tilt + amber glow while other
-   cards dim — grid layout means zero overlap and zero fighting. */
-if (isDesktop && window.gsap && window.ScrollTrigger) {
-  (function workGallery() {
-    const grid = document.getElementById('work-grid');
-    if (!grid) return;
+/* ---------------- Homepage Featured Masonry Gallery ---------------- */
+// Breakpoint constants
+const BREAKPOINT_TABLET = 768;
+const BREAKPOINT_DESKTOP = 1024;
 
-    const cards = Array.from(grid.querySelectorAll('.w-card'));
+// Masonry configuration by screen size
+const HOME_GALLERY = {
+  mobile:  { columns: 2, limit: 4 },
+  tablet:  { columns: 2, limit: 4 },
+  desktop: { columns: 3, limit: 5 }
+};
 
-    // Initial hidden state — scale+blur only, so parallax (yPercent) never conflicts
-    gsap.set(cards, { autoAlpha: 0, scale: 0.88, filter: 'blur(12px)', transformOrigin: 'center bottom' });
+// 5 chosen item IDs in fixed order (NO shuffle).
+// The first 4 are also the tablet & mobile set.
+//   1. proj-01: 'Arches Built for the Littles' (Brand Identity, Arches)  - ratio: 1.25 (800x1000)
+//   2. proj-06: 'OLBR Buffalo Chicken Wings' (Food & Dining, OLBR)      - ratio: 1.776 (800x1421)
+//   3. proj-08: 'OLBR Pocket Pizza Campaign' (Packaging, OLBR)          - ratio: 1.7775 (800x1422)
+//   4. proj-05: 'Arches Happy Independence Day' (Flyer & Print, Arches) - ratio: 1.25 (900x1125)
+//   5. proj-11: 'Arches Gather the Squad' (Social Media, Arches)        - ratio: 1.25 (800x1000)
+const HOME_FEATURED_IDS = [
+  'proj-01',
+  'proj-06',
+  'proj-08',
+  'proj-05',
+  'proj-11'
+];
 
-    const heading = document.querySelectorAll('#work .eyebrow, #work .section-head h2');
+// Mapping from real data categories to homepage filter chips (All, Logo, Branding, Print)
+const CATEGORY_TO_FILTER_MAP = {
+  'Brand Identity': 'brand',
+  'Packaging': 'brand',
+  'Flyer & Print': 'print'
+  // Food & Dining, Social Media: visible under 'All'.
+  // Logo: 0 matching cards among the 5 featured, chip is hidden automatically.
+};
 
-    // Cinematic stagger reveal
-    ScrollTrigger.create({
-      trigger: grid, start: 'top 82%', once: true,
-      onEnter: () => {
-        gsap.fromTo(heading,
-          { opacity: 0, y: 30, filter: 'blur(14px)' },
-          { opacity: 1, y: 0, filter: 'blur(0px)', duration: 1, ease: 'power3.out', stagger: .08 }
-        );
-        gsap.to(cards, {
-          autoAlpha: 1, scale: 1, filter: 'blur(0px)',
-          duration: 1.1, ease: 'power4.out',
-          stagger: { each: 0.1, from: 'start' }
+function escapeCardHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+const mqDesktop = window.matchMedia(`(min-width: ${BREAKPOINT_DESKTOP}px)`);
+const mqTablet = window.matchMedia(`(min-width: ${BREAKPOINT_TABLET}px) and (max-width: ${BREAKPOINT_DESKTOP - 1}px)`);
+const mqMobile = window.matchMedia(`(max-width: ${BREAKPOINT_TABLET - 1}px)`);
+
+function getGalleryLayout() {
+  if (mqDesktop.matches) return { name: 'desktop', ...HOME_GALLERY.desktop };
+  if (mqTablet.matches) return { name: 'tablet', ...HOME_GALLERY.tablet };
+  return { name: 'mobile', ...HOME_GALLERY.mobile };
+}
+
+let currentWorkFilter = 'all';
+let currentLayoutName = getGalleryLayout().name;
+
+function createCardElement(project, isEager) {
+  const card = document.createElement('article');
+  card.className = 'w-card';
+  card.tabIndex = 0;
+  card.setAttribute('role', 'button');
+  card.dataset.id = project.id;
+  const mappedCat = CATEGORY_TO_FILTER_MAP[project.category] || '';
+  if (mappedCat) card.dataset.cat = mappedCat;
+
+  const mediaWrap = document.createElement('div');
+  mediaWrap.className = 'w-card__media-wrap';
+  // Reserve exact aspect-ratio space to prevent layout shifts
+  mediaWrap.style.aspectRatio = `${project.width} / ${project.height}`;
+
+  const skeleton = document.createElement('div');
+  skeleton.className = 'gallery-skeleton w-card__skeleton';
+  skeleton.setAttribute('aria-hidden', 'true');
+
+  const img = document.createElement('img');
+  img.className = 'w-card__img';
+  img.alt = project.title || 'Project poster';
+  img.width = project.width;
+  img.height = project.height;
+
+  // Use thumbnails only
+  const targetSrc = project.thumbSrc;
+
+  if (isEager) {
+    img.loading = 'eager';
+    img.setAttribute('fetchpriority', 'high');
+  } else {
+    img.loading = 'lazy';
+    img.setAttribute('decoding', 'async');
+  }
+
+  const onLoaded = () => {
+    img.classList.add('is-loaded');
+    skeleton.classList.add('is-hidden');
+  };
+
+  const onError = () => {
+    console.warn(`[Work Gallery] Failed to load image at: ${targetSrc}`);
+    skeleton.classList.add('is-hidden');
+    const fallback = document.createElement('div');
+    fallback.className = 'w-card__fallback';
+    fallback.setAttribute('aria-label', 'Image unavailable');
+    fallback.innerHTML = `
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+        <circle cx="9" cy="9" r="2"/>
+        <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+      </svg>
+      <span>${escapeCardHtml(project.title)}</span>
+    `;
+    mediaWrap.appendChild(fallback);
+  };
+
+  img.addEventListener('load', onLoaded);
+  img.addEventListener('error', onError);
+
+  img.src = targetSrc;
+  if (img.complete && img.naturalWidth > 0) {
+    onLoaded();
+  }
+
+  mediaWrap.appendChild(skeleton);
+  mediaWrap.appendChild(img);
+
+  const caption = document.createElement('div');
+  caption.className = 'w-card__caption';
+  caption.innerHTML = `
+    <span class="w-card__cat">${escapeCardHtml(project.category)}</span>
+    <h3 class="w-card__title">${escapeCardHtml(project.title)}</h3>
+  `;
+
+  card.appendChild(mediaWrap);
+  card.appendChild(caption);
+
+  return card;
+}
+
+function buildMasonryDOM(projectsToDisplay, layout) {
+  const grid = document.getElementById('work-grid');
+  if (!grid) return;
+
+  grid.style.setProperty('--masonry-cols', layout.columns);
+  grid.innerHTML = '';
+
+  const numCols = layout.columns;
+  const colElements = [];
+  const colHeights = new Array(numCols).fill(0);
+
+  for (let c = 0; c < numCols; c++) {
+    const colDiv = document.createElement('div');
+    colDiv.className = 'work__masonry-col';
+    colDiv.dataset.colIndex = c;
+    colElements.push(colDiv);
+    grid.appendChild(colDiv);
+  }
+
+  // Estimated caption height relative to column width (roughly 60px / 320px = 0.19)
+  const CAPTION_RATIO = layout.columns === 3 ? 0.19 : 0.24;
+  const GAP_RATIO = layout.columns === 3 ? 0.07 : 0.08;
+
+  projectsToDisplay.forEach((project, idx) => {
+    // Top row cards (first card in each column) use eager loading
+    const isEager = idx < numCols;
+    const cardEl = createCardElement(project, isEager);
+
+    // Find the currently shortest column
+    let minCol = 0;
+    let minH = colHeights[0];
+    for (let c = 1; c < numCols; c++) {
+      if (colHeights[c] < minH) {
+        minH = colHeights[c];
+        minCol = c;
+      }
+    }
+
+    colElements[minCol].appendChild(cardEl);
+
+    // Compute aspect ratio (height / width) + estimated caption height
+    const ratio = (project.height && project.width) ? (project.height / project.width) : 1.25;
+    colHeights[minCol] += ratio + CAPTION_RATIO + (colHeights[minCol] > 0 ? GAP_RATIO : 0);
+  });
+}
+
+function renderHomeMasonryGallery(animate = false) {
+  const grid = document.getElementById('work-grid');
+  if (!grid) return;
+
+  const allProjects = window.GALLERY_PROJECTS || [];
+  if (!allProjects.length) return;
+
+  const layout = getGalleryLayout();
+
+  // Resolve the 5 featured projects from shared data
+  const featuredProjects = HOME_FEATURED_IDS.map(id => allProjects.find(p => p.id === id)).filter(Boolean);
+
+  // Update filter chip visibility based on the 5 featured items
+  const availableFilterValues = new Set(['all']);
+  featuredProjects.forEach(project => {
+    const mapped = CATEGORY_TO_FILTER_MAP[project.category];
+    if (mapped) availableFilterValues.add(mapped);
+  });
+
+  const chips = document.querySelectorAll('.work__filters .chip');
+  chips.forEach(chip => {
+    const fVal = chip.dataset.filter;
+    if (fVal && !availableFilterValues.has(fVal)) {
+      chip.style.display = 'none';
+    } else {
+      chip.style.display = '';
+    }
+  });
+
+  // Filter projects according to active chip
+  const matchingProjects = featuredProjects.filter(project => {
+    if (currentWorkFilter === 'all') return true;
+    const mapped = CATEGORY_TO_FILTER_MAP[project.category];
+    return mapped === currentWorkFilter;
+  });
+
+  // Limit applies after filtering (desktop: 5, tablet/mobile: 4)
+  const projectsToDisplay = matchingProjects.slice(0, layout.limit);
+
+  if (animate && window.gsap) {
+    const oldHeight = grid.offsetHeight;
+    grid.style.height = oldHeight + 'px';
+
+    gsap.to(grid, {
+      opacity: 0,
+      duration: 0.2,
+      ease: 'power2.out',
+      onComplete: () => {
+        buildMasonryDOM(projectsToDisplay, layout);
+        grid.style.height = 'auto';
+        const newHeight = grid.offsetHeight;
+        grid.style.height = oldHeight + 'px';
+
+        gsap.to(grid, {
+          opacity: 1,
+          height: newHeight,
+          duration: 0.35,
+          ease: 'power2.out',
+          onComplete: () => {
+            grid.style.height = 'auto';
+            if (window.ScrollTrigger) ScrollTrigger.refresh();
+          }
         });
       }
     });
-
-    // Premium Inner-Image Parallax
-    // Scales the image slightly larger than the card and shifts it on scroll
-    cards.forEach((card) => {
-      const media = card.querySelector('.w-card__media');
-      if (!media) return;
-      
-      // Make the image taller so we have room to parallax
-      gsap.set(media, { height: '120%', top: '-10%' });
-      
-      gsap.to(media, {
-        yPercent: 20, // Moves from top:-10% (0) to a positive shift
-        ease: 'none',
-        scrollTrigger: {
-          trigger: card,
-          start: 'top bottom',
-          end: 'bottom top',
-          scrub: true
-        }
-      });
-    });
-  })();
+  } else {
+    buildMasonryDOM(projectsToDisplay, layout);
+    if (window.ScrollTrigger) ScrollTrigger.refresh();
+  }
 }
 
-/* ---------------- Work filters ---------------- */
-const chips = document.querySelectorAll('.chip');
-const wCards = document.querySelectorAll('.w-card');
-const grid = document.getElementById('work-grid');
+// Initial render
+renderHomeMasonryGallery(false);
 
-chips.forEach(chip => {
+// Staggered entrance reveal on scroll
+if (window.gsap && window.ScrollTrigger) {
+  const grid = document.getElementById('work-grid');
+  if (grid) {
+    const heading = document.querySelectorAll('#work .eyebrow, #work .section-head h2');
+    ScrollTrigger.create({
+      trigger: grid,
+      start: 'top 85%',
+      once: true,
+      onEnter: () => {
+        gsap.fromTo(heading,
+          { opacity: 0, y: 24 },
+          { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', stagger: 0.08 }
+        );
+        gsap.fromTo(grid.querySelectorAll('.w-card'),
+          { opacity: 0, y: 24 },
+          { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', stagger: 0.08 }
+        );
+      }
+    });
+  }
+}
+
+// Media query change handlers (no polling, no resize listener spam)
+function handleLayoutChange() {
+  const newLayout = getGalleryLayout();
+  if (newLayout.name !== currentLayoutName) {
+    currentLayoutName = newLayout.name;
+    renderHomeMasonryGallery(false);
+  }
+}
+
+[mqDesktop, mqTablet, mqMobile].forEach(mq => {
+  if (typeof mq.addEventListener === 'function') {
+    mq.addEventListener('change', handleLayoutChange);
+  } else if (typeof mq.addListener === 'function') {
+    mq.addListener(handleLayoutChange);
+  }
+});
+
+// Wire filter chips
+const filterChips = document.querySelectorAll('.work__filters .chip');
+filterChips.forEach(chip => {
   chip.addEventListener('click', () => {
     if (chip.classList.contains('is-active')) return;
-    
-    chips.forEach(c => c.classList.remove('is-active'));
+
+    filterChips.forEach(c => c.classList.remove('is-active'));
     chip.classList.add('is-active');
-    const filter = chip.dataset.filter;
-    
-    if (window.gsap && grid) {
-      const oldHeight = grid.offsetHeight;
-      
-      // Fade out the entire grid quickly
-      gsap.to(grid, {
-        opacity: 0,
-        duration: 0.25,
-        onComplete: () => {
-          // Lock height to prevent page jump
-          grid.style.height = oldHeight + 'px';
-          
-          wCards.forEach(card => {
-            const show = filter === 'all' || card.dataset.cat === filter;
-            card.classList.toggle('is-hidden', !show);
-            // Ensure cards are fully visible when the grid fades back in
-            gsap.set(card, { opacity: 1, scale: 1 });
-          });
-          
-          // Measure the new natural height
-          grid.style.height = 'auto';
-          const newHeight = grid.offsetHeight;
-          grid.style.height = oldHeight + 'px';
-          
-          // Smoothly animate to the new height while fading back in
-          gsap.to(grid, {
-            opacity: 1,
-            height: newHeight,
-            duration: 0.4,
-            ease: 'power2.out',
-            onComplete: () => {
-              grid.style.height = 'auto'; // Release height lock
-              if (window.ScrollTrigger) ScrollTrigger.refresh(); // Update parallax calculations
-            }
-          });
-        }
-      });
-    } else {
-      wCards.forEach(card => {
-        const show = filter === 'all' || card.dataset.cat === filter;
-        card.classList.toggle('is-hidden', !show);
-      });
-    }
+    currentWorkFilter = chip.dataset.filter || 'all';
+    renderHomeMasonryGallery(true);
   });
 });
 
