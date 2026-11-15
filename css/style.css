@@ -303,6 +303,7 @@ section {
 
 .section-head h2 {
   font-size: clamp(1.8rem, 3.4vw, 2.6rem);
+  color: #ffffff;
 }
 
 .section-head--split {
@@ -1102,7 +1103,7 @@ html[data-theme="light"] .logo-wm:hover {
   font-size: clamp(2rem, 4vw, 2.8rem);
   font-family: var(--font-display);
   font-weight: 500;
-  color: var(--sky);
+  color: #ffffff;
 }
 
 /* ── Timeline ordered list ──────────────────────────────────── */
@@ -1413,7 +1414,7 @@ body.hiw-anim-ready .hiw__step--odd .hiw__text {
   font-weight: 900;
   line-height: 1.15;
   letter-spacing: -0.03em;
-  color: var(--ink);
+  color: #ffffff;
   margin: 0 auto 1.15rem;
   max-width: 640px;
 }
@@ -1537,6 +1538,7 @@ html[data-theme="light"] .about-hero__stroke {
   font-weight: 500;
   margin-bottom: 0.5rem;
   font-family: var(--font-display);
+  color: #ffffff;
 }
 
 .stats__subtitle {
@@ -1660,6 +1662,7 @@ html[data-theme="light"] .about-hero__stroke {
 
 /* Desktop hover & keyboard focus: nudge diagonally up and right by 5px */
 @media (hover: hover) and (pointer: fine) {
+
   .work__gallery-btn:hover svg,
   .work__gallery-btn:focus-visible svg {
     transform: translate(5px, -5px);
@@ -1682,11 +1685,13 @@ html[data-theme="light"] .about-hero__stroke {
   .work__gallery-btn svg {
     transition: opacity 0.2s ease !important;
   }
+
   .work__gallery-btn:hover svg,
   .work__gallery-btn:focus-visible svg {
     transform: none !important;
     opacity: 0.8;
   }
+
   .work__gallery-btn:active svg {
     transform: none !important;
     opacity: 0.65;
@@ -2063,9 +2068,18 @@ html[data-theme="light"] .about-hero__stroke {
   text-align: left;
 }
 
-.cta h2 {
+.cta h2,
+.cta [data-reveal="heading"],
+.cta h2 u {
   font-size: clamp(2rem, 5vw, 3.2rem);
   margin-top: .5rem;
+  color: #ffffff;
+}
+
+html[data-theme="light"] .cta h2,
+html[data-theme="light"] .cta [data-reveal="heading"],
+html[data-theme="light"] .cta h2 u {
+  color: var(--ink);
 }
 
 .cta__sub {
@@ -2427,9 +2441,126 @@ html[data-theme="light"] .about-hero__quote-bar {
 /* ============================================================
    Reveal base state (animated via JS/GSAP)
 ============================================================ */
-[data-reveal] {
+[data-reveal]:not([data-reveal="heading"]):not([data-reveal="text"]):not([data-reveal="eyebrow"]) {
   opacity: 0;
   transform: translateY(28px);
+}
+
+/* ============================================================
+   Masked Word Reveal Animation (Headings, Eyebrows & Paragraphs)
+============================================================ */
+:root {
+  --reveal-duration: 800ms;
+  --reveal-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --reveal-stagger: 60ms;
+  --reveal-stagger-max: 600ms;
+  --reveal-clip-pad: 0.14em;
+  --reveal-text-duration: 600ms;
+  --reveal-text-delay: 200ms;
+}
+
+/* Base styles for clipping words without cutting off descenders/ascenders */
+.reveal-word {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: top;
+  padding-block: var(--reveal-clip-pad);
+  margin-block: calc(-1 * var(--reveal-clip-pad));
+}
+
+.reveal-word__inner {
+  display: inline-block;
+  vertical-align: top;
+  transform: translateY(0);
+}
+
+/* All headings fully white across dark theme */
+[data-reveal="heading"],
+[data-reveal="heading"] *,
+.section-head h2,
+.about-hero__title,
+.stats__title,
+.hiw__title,
+.cta h2 {
+  color: #ffffff;
+}
+
+/* Ensure the arrow button next to "Project Gallery" keeps its theme yellow color */
+.work__gallery-btn,
+.work__gallery-btn svg {
+  color: var(--amber) !important;
+}
+
+html[data-theme="light"] [data-reveal="heading"],
+html[data-theme="light"] [data-reveal="heading"] *,
+html[data-theme="light"] .section-head h2,
+html[data-theme="light"] .about-hero__title,
+html[data-theme="light"] .stats__title,
+html[data-theme="light"] .hiw__title,
+html[data-theme="light"] .cta h2 {
+  color: var(--ink);
+}
+
+/* Initially hide only when JS is confirmed ready (via html.js-reveal) */
+html.js-reveal [data-reveal="heading"]:not(.is-revealed) .reveal-word__inner {
+  transform: translateY(115%);
+}
+
+html.js-reveal [data-reveal="text"]:not(.is-revealed) {
+  opacity: 0;
+  transform: translateY(16px);
+}
+
+html.js-reveal [data-reveal="eyebrow"]:not(.is-revealed) {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+/* Transitions triggered when .is-revealed is added */
+html.js-reveal [data-reveal="heading"].is-revealed .reveal-word__inner {
+  transform: translateY(0);
+  transition: transform var(--reveal-duration) var(--reveal-ease);
+}
+
+html.js-reveal [data-reveal="text"].is-revealed {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity var(--reveal-text-duration) var(--reveal-ease),
+    transform var(--reveal-text-duration) var(--reveal-ease);
+}
+
+html.js-reveal [data-reveal="eyebrow"].is-revealed {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 500ms var(--reveal-ease),
+    transform 500ms var(--reveal-ease);
+}
+
+/* Once fully revealed, unclip overflow so buttons, focus rings, hover transforms aren't clipped */
+[data-reveal="heading"].is-finished .reveal-word {
+  overflow: visible;
+}
+
+/* Reduced motion fallback: show everything immediately without splitting or animation */
+@media (prefers-reduced-motion: reduce) {
+  .reveal-word {
+    overflow: visible !important;
+    padding-block: 0 !important;
+    margin-block: 0 !important;
+  }
+
+  .reveal-word__inner {
+    transform: none !important;
+    transition: none !important;
+  }
+
+  [data-reveal="heading"],
+  [data-reveal="text"],
+  [data-reveal="eyebrow"] {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
 }
 
 [data-slide="left"] {
@@ -2574,6 +2705,7 @@ html[data-theme="light"] .about-hero__quote-bar {
    How We Work — Mobile Left-Rail Timeline (< 768px)
 ============================================================ */
 @media (max-width: 767px) {
+
   .btn,
   .btn--ghost {
     border-width: 1.5px;
@@ -3027,6 +3159,7 @@ html[data-theme="light"] .about-hero__quote-bar {
 
 /* ── Mobile: remove yellow border glow on card hover ─────── */
 @media (max-width: 767px) and (hover: none) {
+
   .mod-card:hover,
   .t-card:hover {
     border-color: var(--line);

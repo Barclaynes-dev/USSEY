@@ -9,7 +9,7 @@ const isDesktop = window.matchMedia('(pointer: fine) and (min-width: 900px)').ma
 const isDesktopFan = window.matchMedia('(pointer: fine) and (min-width: 1100px)').matches;
 
 /* ---------------- Theme toggle ---------------- */
-(function themeInit(){
+(function themeInit() {
   const stored = localStorage.getItem('ussey-theme');
   const system = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
   root.setAttribute('data-theme', stored || system || 'dark');
@@ -19,7 +19,7 @@ const isDesktopFan = window.matchMedia('(pointer: fine) and (min-width: 1100px)'
     const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
     root.setAttribute('data-theme', next);
     localStorage.setItem('ussey-theme', next);
-    if (window.gsap) gsap.fromTo(btn, {rotate:-25}, {rotate:0, duration:.5, ease:'back.out(2)'});
+    if (window.gsap) gsap.fromTo(btn, { rotate: -25 }, { rotate: 0, duration: .5, ease: 'back.out(2)' });
     document.dispatchEvent(new CustomEvent('ussey-theme-change'));
   });
 })();
@@ -28,7 +28,7 @@ const isDesktopFan = window.matchMedia('(pointer: fine) and (min-width: 1100px)'
 const nav = document.getElementById('nav');
 window.addEventListener('scroll', () => {
   nav.classList.toggle('is-scrolled', window.scrollY > 40);
-}, { passive:true });
+}, { passive: true });
 
 const burger = document.getElementById('burger');
 const mobileMenu = document.getElementById('mobile-menu');
@@ -36,7 +36,7 @@ burger.addEventListener('click', () => mobileMenu.classList.toggle('is-open'));
 mobileMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => mobileMenu.classList.remove('is-open')));
 
 /* ---------------- Animated gradient blobs (hero only) ---------------- */
-(function fluidCanvas(){
+(function fluidCanvas() {
   const canvas = document.getElementById('fluid-canvas');
   const hero = document.getElementById('hero');
   if (!canvas || !hero || window.getComputedStyle(canvas).display === 'none') return;
@@ -44,7 +44,7 @@ mobileMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => 
   const RENDER_SCALE = 0.45; // draw at a fraction of the real size; the blur filter hides the softness
   let w, h, dpr = Math.min(window.devicePixelRatio || 1, 1);
 
-  function resize(){
+  function resize() {
     w = hero.offsetWidth; h = hero.offsetHeight;
     canvas.width = w * dpr * RENDER_SCALE; canvas.height = h * dpr * RENDER_SCALE;
     canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
@@ -62,7 +62,7 @@ mobileMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => 
   let raf, lastDraw = 0;
   const FRAME_MS = 1000 / 30; // 30fps is plenty for slow-drifting blobs
 
-  function draw(t){
+  function draw(t) {
     raf = requestAnimationFrame(draw);
     if (t - lastDraw < FRAME_MS) return;
     lastDraw = t;
@@ -96,7 +96,7 @@ mobileMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => 
    soft-edged flashes that fade out quickly — not a lingering trail.
    Clicking a primary button spawns a bigger flash; settling the scroll
    position spawns a gentle one. Disabled on touch devices / small screens. */
-(function gridCanvas(){
+(function gridCanvas() {
   const canvas = document.getElementById('grid-canvas');
   if (!isDesktop || prefersReduced) { canvas.style.display = 'none'; return; }
 
@@ -110,11 +110,11 @@ mobileMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => 
 
   const CELL = 44;
 
-  function getGridColor(){
+  function getGridColor() {
     return getComputedStyle(root).getPropertyValue('--grid-line').trim() || 'rgba(150,150,150,0.2)';
   }
 
-  function resize(){
+  function resize() {
     w = window.innerWidth; h = window.innerHeight;
     [canvas, gridBuffer, trailBuffer].forEach(c => {
       c.width = w * dpr; c.height = h * dpr;
@@ -126,13 +126,13 @@ mobileMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => 
     drawGrid();
   }
 
-  function drawGrid(){
+  function drawGrid() {
     gridCtx.clearRect(0, 0, w, h);
     gridCtx.strokeStyle = getGridColor();
     gridCtx.lineWidth = 0.75;
     gridCtx.beginPath();
-    for (let x = 0; x <= w; x += CELL){ gridCtx.moveTo(x, 0); gridCtx.lineTo(x, h); }
-    for (let y = 0; y <= h; y += CELL){ gridCtx.moveTo(0, y); gridCtx.lineTo(w, y); }
+    for (let x = 0; x <= w; x += CELL) { gridCtx.moveTo(x, 0); gridCtx.lineTo(x, h); }
+    for (let y = 0; y <= h; y += CELL) { gridCtx.moveTo(0, y); gridCtx.lineTo(w, y); }
     gridCtx.stroke();
   }
 
@@ -141,13 +141,13 @@ mobileMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => 
   document.addEventListener('ussey-theme-change', drawGrid);
 
   // Spawns one soft, deep-fade radial burst that the decay loop then erodes away.
-  function spawnFlash(x, y, radius, peak){
+  function spawnFlash(x, y, radius, peak) {
     trailCtx.globalCompositeOperation = 'source-over';
     const grad = trailCtx.createRadialGradient(x, y, 0, x, y, radius);
-    grad.addColorStop(0,    `rgba(255,255,255,${peak})`);
+    grad.addColorStop(0, `rgba(255,255,255,${peak})`);
     grad.addColorStop(0.35, `rgba(255,255,255,${peak * 0.5})`);
-    grad.addColorStop(0.7,  `rgba(255,255,255,${peak * 0.15})`);
-    grad.addColorStop(1,    'rgba(255,255,255,0)');
+    grad.addColorStop(0.7, `rgba(255,255,255,${peak * 0.15})`);
+    grad.addColorStop(1, 'rgba(255,255,255,0)');
     trailCtx.fillStyle = grad;
     trailCtx.beginPath();
     trailCtx.arc(x, y, radius, 0, Math.PI * 2);
@@ -158,7 +158,7 @@ mobileMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => 
   let lastFlashTime = 0;
   let looping = false;
 
-  function ensureLoop(){
+  function ensureLoop() {
     if (!looping) { looping = true; requestAnimationFrame(tick); }
   }
 
@@ -170,7 +170,7 @@ mobileMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => 
       lastFlashTime = now;
       ensureLoop();
     }
-  }, { passive:true });
+  }, { passive: true });
 
   // Quick, stronger flash on primary CTA clicks.
   document.querySelectorAll('.btn--solid, .nav__cta').forEach(btn => {
@@ -193,16 +193,16 @@ mobileMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => 
     const style = window.getComputedStyle(input);
     const props = ['fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'letterSpacing', 'textTransform', 'wordSpacing', 'textIndent', 'boxSizing', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'borderWidth', 'lineHeight'];
     props.forEach(p => caretDiv.style[p] = style[p]);
-    
+
     caretDiv.style.width = style.width;
     caretDiv.style.whiteSpace = input.tagName === 'INPUT' ? 'nowrap' : 'pre-wrap';
     caretDiv.style.wordWrap = input.tagName === 'INPUT' ? 'normal' : 'break-word';
-    
+
     caretDiv.textContent = input.value.substring(0, input.selectionEnd);
     const span = document.createElement('span');
-    span.textContent = '.'; 
+    span.textContent = '.';
     caretDiv.appendChild(span);
-    
+
     return {
       x: span.offsetLeft,
       y: span.offsetTop + (parseInt(style.fontSize) || 16) / 2
@@ -214,10 +214,10 @@ mobileMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => 
     input.addEventListener('input', (e) => {
       const rect = e.target.getBoundingClientRect();
       const caret = getCaretXY(e.target);
-      
+
       const x = rect.left + caret.x - e.target.scrollLeft;
       const y = rect.top + caret.y - e.target.scrollTop;
-      
+
       const now = performance.now();
       if (now - lastFlashTime > 55) {
         spawnFlash(x, y, 150, 0.55);
@@ -235,9 +235,9 @@ mobileMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => 
       spawnFlash(lastMouse.x, lastMouse.y, 220, 0.4);
       ensureLoop();
     }, 220);
-  }, { passive:true });
+  }, { passive: true });
 
-  function tick(){
+  function tick() {
     // Fast decay — flashes clear out within a few hundred ms, never linger.
     trailCtx.globalCompositeOperation = 'destination-out';
     trailCtx.fillStyle = 'rgba(0,0,0,0.09)';
@@ -267,7 +267,7 @@ if (window.gsap && window.ScrollTrigger) {
   gsap.registerPlugin(ScrollTrigger);
 
   // Hero intro: centered headline & CTA fade and slide up into view on load
-  gsap.to('#hero [data-reveal], #hero [data-slide="left"]', { x:0, y:0, opacity:1, duration:1, ease:'power3.out', delay:.15 });
+  gsap.to('#hero [data-reveal]:not([data-reveal="heading"]):not([data-reveal="text"]):not([data-reveal="eyebrow"]), #hero [data-slide="left"]', { x: 0, y: 0, opacity: 1, duration: 1, ease: 'power3.out', delay: .15 });
 
   // Hero circle: draw after 1s, hold 4s, then erase
   const circlePath = document.querySelector('.hero-highlight__path');
@@ -294,16 +294,17 @@ if (window.gsap && window.ScrollTrigger) {
     const sides = section.querySelectorAll('[data-slide]');
     ScrollTrigger.create({
       trigger: section, start: 'top 75%', once: true,
-      onEnter: () => gsap.to(sides, { x:0, opacity:1, duration:1, ease:'power3.out', stagger:0 })
+      onEnter: () => gsap.to(sides, { x: 0, opacity: 1, duration: 1, ease: 'power3.out', stagger: 0 })
     });
   });
 
   // Generic section reveals (portfolio cards are handled separately in fan mode)
   document.querySelectorAll('[data-reveal]').forEach(el => {
     if (isDesktop && el.closest('#work-grid')) return;
+    if (el.matches('[data-reveal="heading"], [data-reveal="text"], [data-reveal="eyebrow"]')) return;
     gsap.to(el, {
-      opacity:1, y:0, duration:.9, ease:'power3.out',
-      scrollTrigger: { trigger: el, start:'top 88%' }
+      opacity: 1, y: 0, duration: .9, ease: 'power3.out',
+      scrollTrigger: { trigger: el, start: 'top 88%' }
     });
   });
 
@@ -311,14 +312,14 @@ if (window.gsap && window.ScrollTrigger) {
   document.querySelectorAll('.alt__media-inner').forEach(el => {
     gsap.to(el, {
       yPercent: -10,
-      scrollTrigger: { trigger: el.closest('.alt'), start:'top bottom', end:'bottom top', scrub:true }
+      scrollTrigger: { trigger: el.closest('.alt'), start: 'top bottom', end: 'bottom top', scrub: true }
     });
   });
 
   // Hero card stack parallax
   if (document.querySelector('.hero__card--back')) {
-    gsap.to('.hero__card--back', { y: 40, scrollTrigger: { trigger:'.hero', start:'top top', end:'bottom top', scrub:true } });
-    gsap.to('.hero__card--front', { y: -20, scrollTrigger: { trigger:'.hero', start:'top top', end:'bottom top', scrub:true } });
+    gsap.to('.hero__card--back', { y: 40, scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true } });
+    gsap.to('.hero__card--front', { y: -20, scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true } });
   }
 
   // Stat counters
@@ -326,17 +327,17 @@ if (window.gsap && window.ScrollTrigger) {
     const numEl = tile.querySelector('.stat-tile__num');
     const barEl = tile.querySelector('.stat-tile__bar');
     if (!numEl) return;
-    
+
     const target = +numEl.dataset.count;
     ScrollTrigger.create({
       trigger: tile, start: 'top 90%', once: true,
       onEnter: () => {
         // Slow start that accelerates (power3.in)
-        gsap.fromTo(numEl, { innerText:0 }, {
-          innerText: target, duration:1.6, ease:'power3.in', snap:{ innerText:1 },
-          onUpdate: function(){ numEl.textContent = Math.round(this.targets()[0].innerText); }
+        gsap.fromTo(numEl, { innerText: 0 }, {
+          innerText: target, duration: 1.6, ease: 'power3.in', snap: { innerText: 1 },
+          onUpdate: function () { numEl.textContent = Math.round(this.targets()[0].innerText); }
         });
-        
+
         // Bar grows from center out
         if (barEl) {
           gsap.set(barEl, { transformOrigin: 'center' });
@@ -361,7 +362,7 @@ if (window.gsap && window.ScrollTrigger) {
   const timeline = document.querySelector('.hiw__timeline');
   if (!timeline) return;
 
-  const steps   = Array.from(timeline.querySelectorAll('.hiw__step'));
+  const steps = Array.from(timeline.querySelectorAll('.hiw__step'));
   const section = document.querySelector('.hiw');
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const isMobile = () => window.innerWidth < 768;
@@ -395,9 +396,9 @@ if (window.gsap && window.ScrollTrigger) {
     entries.forEach(entry => {
       if (!entry.isIntersecting) return;
 
-      const step   = entry.target;
+      const step = entry.target;
       const circle = step.querySelector('.hiw__circle');
-      const text   = step.querySelector('.hiw__text');
+      const text = step.querySelector('.hiw__text');
 
       if (circle) circle.classList.add('is-visible');
       if (text) {
@@ -416,7 +417,7 @@ if (window.gsap && window.ScrollTrigger) {
   function syncRailDimensions() {
     if (!isMobile() || steps.length < 2) return;
     const firstNode = steps[0].querySelector('.hiw__node');
-    const lastNode  = steps[steps.length - 1].querySelector('.hiw__node');
+    const lastNode = steps[steps.length - 1].querySelector('.hiw__node');
     if (firstNode && lastNode) {
       const span = lastNode.offsetTop - firstNode.offsetTop;
       if (span > 0) {
@@ -437,12 +438,12 @@ if (window.gsap && window.ScrollTrigger) {
 
     if (isMobile() && steps.length >= 2) {
       const firstNode = steps[0].querySelector('.hiw__node');
-      const lastNode  = steps[steps.length - 1].querySelector('.hiw__node');
+      const lastNode = steps[steps.length - 1].querySelector('.hiw__node');
 
       if (firstNode && lastNode) {
         const triggerY = viewH * 0.55; // Focal trigger line
         const firstRect = firstNode.getBoundingClientRect();
-        const lastRect  = lastNode.getBoundingClientRect();
+        const lastRect = lastNode.getBoundingClientRect();
         const totalSpan = lastRect.top - firstRect.top;
 
         let progress = 0;
@@ -520,8 +521,8 @@ const BREAKPOINT_DESKTOP = 1024;
 
 // Masonry configuration by screen size
 const HOME_GALLERY = {
-  mobile:  { columns: 2, limit: 4 },
-  tablet:  { columns: 2, limit: 4 },
+  mobile: { columns: 2, limit: 4 },
+  tablet: { columns: 2, limit: 4 },
   desktop: { columns: 3, limit: 5 }
 };
 
@@ -773,20 +774,15 @@ function renderHomeMasonryGallery(animate = false) {
 // Initial render
 renderHomeMasonryGallery(false);
 
-// Staggered entrance reveal on scroll
+// Staggered entrance reveal on scroll for portfolio cards
 if (window.gsap && window.ScrollTrigger) {
   const grid = document.getElementById('work-grid');
   if (grid) {
-    const heading = document.querySelectorAll('#work .eyebrow, #work .section-head h2');
     ScrollTrigger.create({
       trigger: grid,
       start: 'top 85%',
       once: true,
       onEnter: () => {
-        gsap.fromTo(heading,
-          { opacity: 0, y: 24 },
-          { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', stagger: 0.08 }
-        );
         gsap.fromTo(grid.querySelectorAll('.w-card'),
           { opacity: 0, y: 24 },
           { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', stagger: 0.08 }
@@ -1340,4 +1336,299 @@ filterChips.forEach(chip => {
 
   syncMode();
   window.addEventListener('resize', syncMode);
+})();
+
+/* ============================================================
+   Masked Word Reveal Animation Module
+   ============================================================ */
+(function initMaskedWordReveals() {
+  // 1. Accessibility: respect prefers-reduced-motion
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    return;
+  }
+
+  // Timing constants (in ms)
+  const DURATION_WORD = 800;
+  const DURATION_TEXT = 600;
+  const DURATION_EYEBROW = 500;
+  const STAGGER_STEP_DEFAULT = 60;
+  const STAGGER_MAX = 600;
+  const TEXT_DELAY_AFTER_LAST_WORD = 200;
+  const EYEBROW_LEAD_TIME = 100;
+
+  let headingObserver = null;
+  let fallbackTextObserver = null;
+  const processedHeadings = new WeakSet();
+
+  /**
+   * Splits a heading into outer clipping boxes (.reveal-word)
+   * and inner transform spans (.reveal-word__inner), preserving
+   * tags (u, em, br) and the nowrap arrow button wrapper.
+   */
+  function splitHeading(headingEl) {
+    if (processedHeadings.has(headingEl)) return null;
+    processedHeadings.add(headingEl);
+
+    // Set aria-label with full text for screen readers
+    const fullText = headingEl.textContent.trim().replace(/\s+/g, ' ');
+    if (!headingEl.getAttribute('aria-label')) {
+      headingEl.setAttribute('aria-label', fullText);
+    }
+
+    const childNodes = Array.from(headingEl.childNodes);
+    const fragment = document.createDocumentFragment();
+    const innerSpans = [];
+
+    childNodes.forEach(node => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const text = node.textContent;
+        // Split by whitespace
+        const parts = text.split(/(\s+)/);
+        parts.forEach(part => {
+          if (!part) return;
+          if (/^\s+$/.test(part)) {
+            // Natural space between inline-block words
+            fragment.appendChild(document.createTextNode(' '));
+          } else {
+            // Check if part is standalone punctuation immediately following an element
+            if (/^[.,!?;:]+$/.test(part) && innerSpans.length > 0 && fragment.lastChild && fragment.lastChild.classList && fragment.lastChild.classList.contains('reveal-word')) {
+              innerSpans[innerSpans.length - 1].appendChild(document.createTextNode(part));
+            } else {
+              const wordWrap = document.createElement('span');
+              wordWrap.className = 'reveal-word';
+              wordWrap.setAttribute('aria-hidden', 'true');
+
+              const innerSpan = document.createElement('span');
+              innerSpan.className = 'reveal-word__inner';
+              innerSpan.textContent = part;
+
+              wordWrap.appendChild(innerSpan);
+              fragment.appendChild(wordWrap);
+              innerSpans.push(innerSpan);
+            }
+          }
+        });
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        const tag = node.tagName.toLowerCase();
+        if (tag === 'br') {
+          fragment.appendChild(node.cloneNode(true));
+        } else if (node.classList.contains('work__heading-nowrap')) {
+          // Special handling for "Project Gallery" button wrapper - reuse original node to keep event listeners
+          const nowrapWrap = node;
+          const wordWrap = document.createElement('span');
+          wordWrap.className = 'reveal-word';
+
+          const innerSpan = document.createElement('span');
+          innerSpan.className = 'reveal-word__inner';
+
+          while (nowrapWrap.firstChild) {
+            innerSpan.appendChild(nowrapWrap.firstChild);
+          }
+
+          wordWrap.appendChild(innerSpan);
+          nowrapWrap.appendChild(wordWrap);
+          fragment.appendChild(nowrapWrap);
+          innerSpans.push(innerSpan);
+        } else {
+          // Inline element (e.g. <u>help</u>, <em>saying</em>) - reuse original node
+          const wordWrap = document.createElement('span');
+          wordWrap.className = 'reveal-word';
+          wordWrap.setAttribute('aria-hidden', 'true');
+
+          const innerSpan = document.createElement('span');
+          innerSpan.className = 'reveal-word__inner';
+          innerSpan.appendChild(node);
+
+          wordWrap.appendChild(innerSpan);
+          fragment.appendChild(wordWrap);
+          innerSpans.push(innerSpan);
+        }
+      }
+    });
+
+    headingEl.innerHTML = '';
+    headingEl.appendChild(fragment);
+
+    return innerSpans;
+  }
+
+  /**
+   * Plays the masked reveal animation for a heading, its eyebrow, and its supporting text.
+   */
+  function playHeadingReveal(headingEl) {
+    if (headingEl.dataset.revealPlayed === 'true') return;
+    headingEl.dataset.revealPlayed = 'true';
+
+    const innerSpans = Array.from(headingEl.querySelectorAll('.reveal-word__inner'));
+    const wordCount = innerSpans.length;
+
+    // Locate associated eyebrow and paragraph in the same container or section
+    const container = headingEl.closest('.section-head, .about-hero__intro, .stats__header, .hero__head, .cta, section') || headingEl.parentElement;
+    const eyebrow = container ? container.querySelector('[data-reveal="eyebrow"]') : null;
+    const text = container ? container.querySelector('[data-reveal="text"]') : null;
+
+    // Eyebrow animation (starts first, ~100ms lead time)
+    const hasEyebrow = !!eyebrow && eyebrow.dataset.revealPlayed !== 'true';
+    if (hasEyebrow) {
+      eyebrow.dataset.revealPlayed = 'true';
+      eyebrow.style.willChange = 'opacity, transform';
+      eyebrow.style.transitionDelay = '0ms';
+      requestAnimationFrame(() => {
+        eyebrow.classList.add('is-revealed');
+      });
+    }
+
+    const firstWordDelay = hasEyebrow ? EYEBROW_LEAD_TIME : 0;
+    const staggerStep = wordCount > 1 ? Math.min(STAGGER_STEP_DEFAULT, STAGGER_MAX / (wordCount - 1)) : 0;
+
+    // Words animation
+    innerSpans.forEach((span, i) => {
+      const delay = Math.round(firstWordDelay + i * staggerStep);
+      span.style.willChange = 'transform';
+      span.style.transitionDelay = `${delay}ms`;
+    });
+
+    requestAnimationFrame(() => {
+      headingEl.classList.add('is-revealed');
+    });
+
+    // Supporting text animation (starts ~200ms after last word begins)
+    let textEndTime = 0;
+    if (text && text.dataset.revealPlayed !== 'true') {
+      text.dataset.revealPlayed = 'true';
+      const lastWordStart = firstWordDelay + (wordCount > 0 ? (wordCount - 1) * staggerStep : 0);
+      const textDelay = Math.round(lastWordStart + TEXT_DELAY_AFTER_LAST_WORD);
+      text.style.willChange = 'opacity, transform';
+      text.style.transitionDelay = `${textDelay}ms`;
+      requestAnimationFrame(() => {
+        text.classList.add('is-revealed');
+      });
+      textEndTime = textDelay + DURATION_TEXT;
+    }
+
+    const lastWordEndTime = firstWordDelay + (wordCount > 0 ? (wordCount - 1) * staggerStep : 0) + DURATION_WORD;
+    const totalDuration = Math.max(lastWordEndTime, textEndTime);
+
+    // Cleanup will-change layers and unclip overflow once animation finishes
+    setTimeout(() => {
+      innerSpans.forEach(span => {
+        span.style.willChange = '';
+      });
+      headingEl.classList.add('is-finished');
+      if (eyebrow) eyebrow.style.willChange = '';
+      if (text) text.style.willChange = '';
+    }, totalDuration + 50);
+  }
+
+  /**
+   * Finds and sets up observation on all headings with data-reveal="heading".
+   */
+  function setupHeadings() {
+    const headings = document.querySelectorAll('[data-reveal="heading"]');
+    headings.forEach(heading => {
+      if (processedHeadings.has(heading)) return;
+
+      splitHeading(heading);
+
+      // Hero headline triggers immediately without waiting for scroll
+      if (heading.closest('#hero')) {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            playHeadingReveal(heading);
+          });
+        });
+      } else if (headingObserver) {
+        headingObserver.observe(heading);
+      }
+    });
+    if (fallbackTextObserver) {
+      document.querySelectorAll('[data-reveal="text"], [data-reveal="eyebrow"]').forEach(el => {
+        if (el.dataset.revealObserved !== 'true') {
+          el.dataset.revealObserved = 'true';
+          fallbackTextObserver.observe(el);
+        }
+      });
+    }
+  }
+
+  /**
+   * Initializes the module once custom fonts are loaded.
+   */
+  function start() {
+    const onFontsReady = () => {
+      // Add js-reveal class only after fonts are ready and JS confirms execution
+      document.documentElement.classList.add('js-reveal');
+
+      // Setup IntersectionObserver: trigger only when in viewport by a percentage (threshold 0.2, -40px rootMargin)
+      if ('IntersectionObserver' in window) {
+        headingObserver = new IntersectionObserver((entries, obs) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              obs.unobserve(entry.target);
+              playHeadingReveal(entry.target);
+            }
+          });
+        }, {
+          threshold: 0.2,
+          rootMargin: '0px 0px -40px 0px'
+        });
+
+        fallbackTextObserver = new IntersectionObserver((entries, obs) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              obs.unobserve(entry.target);
+              const el = entry.target;
+              if (el.dataset.revealPlayed !== 'true') {
+                el.dataset.revealPlayed = 'true';
+                el.style.willChange = 'opacity, transform';
+                requestAnimationFrame(() => {
+                  el.classList.add('is-revealed');
+                });
+                setTimeout(() => {
+                  el.style.willChange = '';
+                }, DURATION_TEXT + 50);
+              }
+            }
+          });
+        }, {
+          threshold: 0.2,
+          rootMargin: '0px 0px -40px 0px'
+        });
+      }
+
+      setupHeadings();
+
+      // MutationObserver to catch dynamically replaced headings (e.g. filter changes)
+      if ('MutationObserver' in window) {
+        const mutObs = new MutationObserver(mutations => {
+          let needsCheck = false;
+          mutations.forEach(m => {
+            m.addedNodes.forEach(node => {
+              if (node.nodeType === Node.ELEMENT_NODE) {
+                if (node.matches && (node.matches('[data-reveal="heading"]') || node.querySelector('[data-reveal="heading"]'))) {
+                  needsCheck = true;
+                }
+              }
+            });
+          });
+          if (needsCheck) {
+            setupHeadings();
+          }
+        });
+        mutObs.observe(document.body, { childList: true, subtree: true });
+      }
+    };
+
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(onFontsReady);
+    } else {
+      onFontsReady();
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start);
+  } else {
+    start();
+  }
 })();

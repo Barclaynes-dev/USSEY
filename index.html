@@ -195,11 +195,16 @@
 
 
       <!-- Headline block -->
-      <div class="hero__head" data-reveal>
-        <p class="hero__eyebrow">Branding &amp; Design Studio</p>
-        <h1 class="hero__headline">Alone, your good.<br>Together were exceptional.</h1>
+      <div class="hero__head">
+        <p class="hero__eyebrow" data-reveal="eyebrow">Branding &amp; Design Studio</p>
+        <h1 class="hero__headline" data-reveal="heading">Alone, your good.<br>Together were exceptional.</h1>
         <div class="hero__actions">
-          <a href="#contact" class="btn btn--ghost hero__cta">Let's collaborate <span class="hero__cta-arrow" aria-hidden="true"><svg viewBox="0 0 20 14" width="20" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="0" y1="7" x2="18" y2="7"/><polyline points="12,1 18,7 12,13"/></svg></span></a>
+          <a href="#contact" class="btn btn--ghost hero__cta">Let's collaborate <span class="hero__cta-arrow"
+              aria-hidden="true"><svg viewBox="0 0 20 14" width="20" height="14" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="0" y1="7" x2="18" y2="7" />
+                <polyline points="12,1 18,7 12,13" />
+              </svg></span></a>
         </div>
       </div>
 
@@ -269,8 +274,8 @@
           <path d="M10 0C10 5.5 14.5 10 20 10C14.5 10 10 14.5 10 20C10 14.5 5.5 10 0 10C5.5 10 10 5.5 10 0Z" />
         </svg></span>
       <div class="section-head">
-        <p class="eyebrow" data-reveal>What we do</p>
-        <h2 data-reveal>Where do you need <u>help</u>?</h2>
+        <p class="eyebrow" data-reveal="eyebrow">What we do</p>
+        <h2 data-reveal="heading">Where do you need <u>help</u>?</h2>
       </div>
 
       <div class="mod-grid">
@@ -374,8 +379,8 @@
     <section class="hiw" id="hiw">
       <div class="hiw__inner container">
 
-        <div class="hiw__head" data-reveal>
-          <h2 class="hiw__title">How we work</h2>
+        <div class="hiw__head">
+          <h2 class="hiw__title" data-reveal="heading">How we work</h2>
         </div>
 
         <!-- Timeline: data-driven ordered list. Add more <li> items to extend. -->
@@ -526,9 +531,9 @@
 
     <!-- ================= STATS ================= -->
     <section class="stats container">
-      <div class="stats__header" data-reveal>
-        <h2 class="stats__title">Trusted by brands worldwide</h2>
-        <p class="stats__subtitle">Join the companies making a real impact with their identity</p>
+      <div class="stats__header">
+        <h2 class="stats__title" data-reveal="heading">Trusted by brands worldwide</h2>
+        <p class="stats__subtitle" data-reveal="text">Join the companies making a real impact with their identity</p>
       </div>
       <div class="stats__grid">
         <div class="stat-tile" data-reveal>
@@ -579,11 +584,13 @@
       <div class="container about-hero__container">
 
         <!-- Top Copy Block -->
-        <div class="about-hero__intro" data-reveal>
-          <p class="eyebrow">About Ussey</p>
-          <h2 class="about-hero__title">We treat every brand like it has to survive first contact with a real audience.
+        <div class="about-hero__intro">
+          <p class="eyebrow" data-reveal="eyebrow">About Ussey</p>
+          <h2 class="about-hero__title" data-reveal="heading">We treat every brand like it has to survive first contact
+            with a real audience.
           </h2>
-          <p class="about-hero__lead">Ussey is a small studio that works closely with founders and teams to turn a rough
+          <p class="about-hero__lead" data-reveal="text">Ussey is a small studio that works closely with founders and
+            teams to turn a rough
             idea of &ldquo;what we're about&rdquo; into a mark, a system, and print work that actually gets used — not
             just approved.</p>
         </div>
@@ -614,8 +621,15 @@
     <section class="work" id="work">
       <div class="section-head section-head--split">
         <div>
-          <p class="eyebrow" data-reveal>Selected work</p>
-          <h2 data-reveal>Project <span class="work__heading-nowrap">Gallery<button type="button" class="work__gallery-btn" id="work-gallery-trigger" data-gallery-open aria-label="Open full project archive" aria-haspopup="dialog"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.8" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><line x1="5.5" y1="18.5" x2="18.5" y2="5.5"></line><polyline points="9 5.5 18.5 5.5 18.5 15"></polyline></svg></button></span></h2>
+          <p class="eyebrow" data-reveal="eyebrow">Selected work</p>
+          <h2 data-reveal="heading">Project <span class="work__heading-nowrap">Gallery<button type="button"
+                class="work__gallery-btn" id="work-gallery-trigger" data-gallery-open
+                aria-label="Open full project archive" aria-haspopup="dialog"><svg viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="3.8" stroke-linecap="square" stroke-linejoin="miter"
+                  aria-hidden="true">
+                  <line x1="5.5" y1="18.5" x2="18.5" y2="5.5"></line>
+                  <polyline points="9 5.5 18.5 5.5 18.5 15"></polyline>
+                </svg></button></span></h2>
         </div>
         <div class="work__filters" data-reveal>
           <button class="chip is-active" data-filter="all">All</button>
@@ -629,15 +643,20 @@
         <!-- Dynamically rendered from shared gallery data (HOME_FEATURED_CONFIG) -->
       </div>
 
-      <a href="#" class="btn btn--ghost work__more" data-reveal>View more work <span class="work__more-arrow" aria-hidden="true"><svg viewBox="0 0 20 14" width="20" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="0" y1="7" x2="18" y2="7"/><polyline points="12,1 18,7 12,13"/></svg></span></a>
+      <a href="#" class="btn btn--ghost work__more" data-reveal>View more work <span class="work__more-arrow"
+          aria-hidden="true"><svg viewBox="0 0 20 14" width="20" height="14" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="0" y1="7" x2="18" y2="7" />
+            <polyline points="12,1 18,7 12,13" />
+          </svg></span></a>
     </section>
 
     <!-- ================= TESTIMONIALS ================= -->
     <section class="testimonials">
       <div class="section-head section-head--split">
         <div>
-          <p class="eyebrow" data-reveal>Client feedback</p>
-          <h2 data-reveal>What our clients are <em>saying</em></h2>
+          <p class="eyebrow" data-reveal="eyebrow">Client feedback</p>
+          <h2 data-reveal="heading">What our clients are <em>saying</em></h2>
         </div>
         <div class="t-arrows" data-reveal>
           <button class="t-arrow t-arrow--prev" aria-label="Previous testimonial">
@@ -743,9 +762,9 @@
         <span class="deco-pill deco-pill--h deco-pill--accent cta__deco-pill"></span>
       </div>
 
-      <p class="eyebrow" data-reveal>Let's build something</p>
-      <h2 data-reveal>Start your project <u>today</u></h2>
-      <p class="cta__sub" data-reveal>Tell us a little about the brand and where it needs to go.</p>
+      <p class="eyebrow" data-reveal="eyebrow">Let's build something</p>
+      <h2 data-reveal="heading">Start your project <u>today</u></h2>
+      <p class="cta__sub" data-reveal="text">Tell us a little about the brand and where it needs to go.</p>
 
       <form class="cta__form" data-reveal>
         <input type="text" placeholder="Your name" required>
