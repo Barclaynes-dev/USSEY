@@ -15,6 +15,21 @@ body.gallery-locked {
   scroll-behavior: auto !important;
 }
 
+/* ── Backdrop Overlay for Drawer Swipe-to-Close Feedback (Phase 3) ── */
+.gallery-panel-backdrop {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  background-color: #000;
+  opacity: 0;
+  z-index: 998;
+  pointer-events: none;
+  visibility: hidden;
+  transition: opacity 0.32s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.32s;
+}
+
 /* ── Slide-over Panel ────────────────────────────────────── */
 .gallery-panel {
   --topbar-height: 68px;
@@ -31,6 +46,7 @@ body.gallery-locked {
   overflow-x: hidden;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
   display: flex;
   flex-direction: column;
   transform: translateX(100%);
@@ -40,6 +56,15 @@ body.gallery-locked {
   box-shadow: -10px 0 40px rgba(0, 0, 0, 0.4);
   scrollbar-width: thin;
   scrollbar-color: var(--line) transparent;
+}
+
+.gallery-panel.is-dragging {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.gallery-panel.is-dragging * {
+  pointer-events: none !important;
 }
 
 .gallery-panel::-webkit-scrollbar {
@@ -1222,7 +1247,7 @@ html[data-theme="light"] .gallery-viewer {
   background: rgba(244, 241, 234, 0.97);
 }
 
-/* Top bar: close left, position indicator center, counter right */
+/* Top bar: back arrow left, position indicator center */
 .gallery-viewer__topbar {
   display: flex;
   align-items: center;
@@ -1236,6 +1261,12 @@ html[data-theme="light"] .gallery-viewer {
 @media (min-width: 768px) {
   .gallery-viewer__topbar {
     padding: 1.5rem 2.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .gallery-viewer__topbar {
+    padding: 1.75rem 3.5rem 1rem 3.5rem;
   }
 }
 
@@ -1261,11 +1292,115 @@ html[data-theme="light"] .gallery-viewer {
   }
 }
 
-.gallery-viewer__close {
-  /* Pinned top-left as requested */
+/* ── Viewer Back Button (Phase 2) ────────────────────────── */
+.gallery-viewer__back-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--bg-raised);
+  color: var(--ink);
+  cursor: pointer;
+  position: relative;
+  z-index: 2;
+  text-decoration: none;
+  font-family: var(--font-display, inherit);
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  gap: 0.5rem;
+  transition: border-color 0.18s var(--ease),
+              color 0.18s var(--ease),
+              background-color 0.18s var(--ease),
+              box-shadow 0.18s var(--ease),
+              transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gallery-viewer__back-btn:hover {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+
+.gallery-viewer__back-btn:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+}
+
+.gallery-viewer__back-btn[aria-disabled="true"],
+.gallery-viewer__back-btn:disabled {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.gallery-viewer__back-icon {
+  width: 22px;
+  height: 22px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Mobile & Tablet (<1024px): arrow only */
+.gallery-viewer__back-label {
+  display: none;
+}
+
+/* Desktop (1024px and up): "← Back" pill shape with hover nudge */
+@media (min-width: 1024px) {
+  .gallery-viewer__back-btn {
+    width: auto;
+    height: 44px;
+    min-height: 44px;
+    padding: 0 1.25rem 0 1rem;
+    border-radius: 999px;
+  }
+
+  .gallery-viewer__back-label {
+    display: inline-block;
+    color: inherit;
+    line-height: 1;
+  }
+
+  .gallery-viewer__back-btn:hover {
+    transform: translateX(-3px);
+  }
+
+  .gallery-viewer__back-btn:hover .gallery-viewer__back-icon {
+    transform: translateX(-1px);
+  }
+}
+
+/* Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .gallery-viewer__back-btn,
+  .gallery-viewer__back-icon {
+    transition: none !important;
+    transform: none !important;
+  }
+  .gallery-viewer__back-btn:hover {
+    transform: none !important;
+  }
+  .gallery-viewer__back-btn:hover .gallery-viewer__back-icon {
+    transform: none !important;
+  }
 }
 
 .gallery-viewer__counter {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 0.9rem;
@@ -1275,6 +1410,23 @@ html[data-theme="light"] .gallery-viewer {
   border: 1px solid var(--line);
   padding: 0.4rem 1rem;
   border-radius: 999px;
+  line-height: 1;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.gallery-viewer__topbar-spacer {
+  width: 44px;
+  height: 44px;
+  visibility: hidden;
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+@media (min-width: 1024px) {
+  .gallery-viewer__topbar-spacer {
+    width: 90px;
+  }
 }
 
 /* Main stage */

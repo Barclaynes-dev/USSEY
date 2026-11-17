@@ -793,6 +793,11 @@
         <span class="footer__logo">USSEY</span>
         <p>Let's connect your brand to the creative and marketing strategy process so teams can deliver better services,
           faster.</p>
+        <div class="footer__contact" id="footer-contact">
+          <a href="mailto:Contact@ussey.com" class="footer__contact-link">Contact@ussey.com</a>
+          <span class="footer__contact-sep" aria-hidden="true">·</span>
+          <a href="tel:+256777493835" class="footer__contact-link">+(256) 777‑493‑835</a>
+        </div>
       </div>
       <div class="footer__col">
         <h4>Studio</h4>
@@ -810,11 +815,13 @@
       </div>
     </div>
     <div aria-hidden="true" class="footer__wordmark">USSEY</div>
-    <div class="footer__bottom">
+    <div class="footer__bottom" id="footer-bottom">
       <span>© <span id="year"></span> Ussey. All rights reserved.</span>
-      <span>Contact@ussey.com · +(256) 777‑493‑835</span>
     </div>
   </footer>
+
+  <!-- Backdrop overlay for swipe feedback (Phase 3) -->
+  <div class="gallery-panel-backdrop" id="gallery-panel-backdrop" aria-hidden="true"></div>
 
   <!-- ================= VIEW MORE WORK: SLIDE-OVER PANEL ================= -->
   <!-- Single scroll container: the entire panel scrolls; header is sticky inside it -->
@@ -930,20 +937,21 @@
     aria-hidden="true">
     <!-- Top bar -->
     <div class="gallery-viewer__topbar">
-      <!-- Pinned top-left close (X) button as requested -->
-      <button class="gallery-icon-btn gallery-viewer__close" id="gallery-viewer-close"
-        aria-label="Close project preview (Esc)">
-        <svg viewBox="0 0 24 24">
-          <line x1="18" y1="6" x2="6" y2="18"></line>
-          <line x1="6" y1="6" x2="18" y2="18"></line>
+      <!-- Pinned top-left back arrow button (Phase 2) -->
+      <button class="gallery-viewer__back-btn" id="gallery-viewer-back"
+        aria-label="Back to gallery">
+        <svg class="gallery-viewer__back-icon" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
         </svg>
+        <span class="gallery-viewer__back-label">Back</span>
       </button>
 
       <!-- Position indicator e.g. "1 / 13" -->
       <span class="gallery-viewer__counter" id="gallery-viewer-counter">1 / 13</span>
 
       <!-- Placeholder to balance topbar flex -->
-      <div style="width: 44px;" aria-hidden="true"></div>
+      <div class="gallery-viewer__topbar-spacer" aria-hidden="true"></div>
     </div>
 
     <!-- Viewer Body: stacked on mobile/tablet, side-by-side on desktop (>=1024px) -->

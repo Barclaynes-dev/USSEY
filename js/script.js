@@ -1632,3 +1632,38 @@ filterChips.forEach(chip => {
     start();
   }
 })();
+
+/* ============================================================
+   Footer Contact Relocation:
+   - 1024px and up: aligned directly under paragraph in .footer__brand
+   - Below 1024px: remains in .footer__bottom beside copyright
+   ============================================================ */
+(function initFooterContactLayout() {
+  const contactEl = document.getElementById('footer-contact');
+  const brandEl = document.querySelector('.footer__brand');
+  const bottomEl = document.getElementById('footer-bottom');
+
+  if (!contactEl || !brandEl || !bottomEl) return;
+
+  const mql = window.matchMedia('(min-width: 1024px)');
+
+  function updateFooterLayout(e) {
+    if (e.matches) {
+      if (contactEl.parentElement !== brandEl) {
+        brandEl.appendChild(contactEl);
+      }
+    } else {
+      if (contactEl.parentElement !== bottomEl) {
+        bottomEl.appendChild(contactEl);
+      }
+    }
+  }
+
+  if (mql.addEventListener) {
+    mql.addEventListener('change', updateFooterLayout);
+  } else if (mql.addListener) {
+    mql.addListener(updateFooterLayout);
+  }
+
+  updateFooterLayout(mql);
+})();

@@ -29,16 +29,17 @@
   let sentinelObserver = null;
 
   // ── DOM Element Cache ─────────────────────────────────────
-  let panel, panelCloseBtn, panelScroll, masonryGrid, sentinelEl, spinnerEl, emptyEl;
+  let panel, panelCloseBtn, panelScroll, masonryGrid, sentinelEl, spinnerEl, emptyEl, backdropEl;
   let headerEl, searchInput, searchClearBtn, countBadgeEl, chipsRowEl, chipsWrapEl;
   let filterToggleBtn, filterDialog, filterBackdrop, filterCloseBtn, filterListEl, filterClearBtn;
-  let viewer, viewerCloseBtn, viewerPrevBtn, viewerNextBtn;
+  let viewer, viewerBackBtn, viewerPrevBtn, viewerNextBtn;
   let viewerImg, viewerThumb, viewerShimmer, viewerCounter, viewerTitle, viewerCat, viewerDesc, viewerTags;
   let viewerInfo, viewerImgContainer;
   let viewerLoadRequestId = 0;
 
   function cacheDom() {
     panel = document.getElementById('gallery-panel');
+    backdropEl = document.getElementById('gallery-panel-backdrop');
     headerEl = document.getElementById('gallery-panel-header');
     panelCloseBtn = document.getElementById('gallery-panel-close');
     panelScroll = document.getElementById('gallery-panel-scroll');
@@ -61,7 +62,7 @@
     filterClearBtn = document.getElementById('gallery-filter-clear');
 
     viewer = document.getElementById('gallery-viewer');
-    viewerCloseBtn = document.getElementById('gallery-viewer-close');
+    viewerBackBtn = document.getElementById('gallery-viewer-back') || document.getElementById('gallery-viewer-close');
     viewerPrevBtn = document.getElementById('gallery-viewer-prev');
     viewerNextBtn = document.getElementById('gallery-viewer-next');
     viewerImg = document.getElementById('gallery-viewer-img');
@@ -441,8 +442,7 @@
 
     // Click & Keyboard interactions
     const openLightbox = () => {
-      viewerTriggerCard = item;
-      openViewerById(project.id);
+      OverlayState.requestOpenViewer(project.id, item);
     };
 
     item.addEventListener('click', openLightbox);
@@ -517,20 +517,27 @@
   }
 
   // ── Lightbox Slider (Viewer) ──────────────────────────────
-  function openViewerById(id) {
-    const idx = filteredProjects.findIndex(p => p.id === id);
-    if (idx !== -1) {
-      if (masonryGrid) {
-        const card = masonryGrid.querySelector(`.gallery-item[data-id="${id}"]`);
-        if (card) viewerTriggerCard = card;
-      }
-      openViewer(idx);
+  function UI_showViewer(id, triggerCard) {
+    let idx = filteredProjects.findIndex(p => p.id === id);
+    if (idx === -1) {
+      // If item is not in current filter/search, reset to make it visible
+      activeCategories.clear();
+      searchQuery = '';
+      if (searchInput) searchInput.value = '';
+      if (searchClearBtn) searchClearBtn.classList.remove('is-visible');
+      applyFilters();
+      idx = filteredProjects.findIndex(p => p.id === id);
     }
-  }
+    if (idx === -1) return;
 
-  function openViewer(index) {
-    if (index < 0 || index >= filteredProjects.length) return;
-    currentViewerIndex = index;
+    if (triggerCard) {
+      viewerTriggerCard = triggerCard;
+    } else if (masonryGrid) {
+      const card = masonryGrid.querySelector(`.gallery-item[data-id="${id}"]`);
+      if (card) viewerTriggerCard = card;
+    }
+
+    currentViewerIndex = idx;
     isViewerOpen = true;
 
     viewer.classList.add('is-open');
@@ -538,10 +545,14 @@
     updateViewerContent();
 
     // Trap focus inside viewer
-    if (viewerCloseBtn) viewerCloseBtn.focus();
+    if (viewerBackBtn) viewerBackBtn.focus();
+
+    if (typeof OverlayState !== 'undefined' && OverlayState.notify) {
+      OverlayState.notify('viewer', id);
+    }
   }
 
-  function closeViewer() {
+  function UI_hideViewer() {
     if (!isViewerOpen) return;
     const currentProject = filteredProjects[currentViewerIndex];
     isViewerOpen = false;
@@ -562,6 +573,24 @@
         targetCard.focus();
       }
     }
+
+    if (typeof OverlayState !== 'undefined' && OverlayState.notify) {
+      OverlayState.notify('archive');
+    }
+  }
+
+  function openViewerById(id) {
+    OverlayState.requestOpenViewer(id);
+  }
+
+  function openViewer(index) {
+    if (index >= 0 && index < filteredProjects.length) {
+      OverlayState.requestOpenViewer(filteredProjects[index].id);
+    }
+  }
+
+  function closeViewer() {
+    OverlayState.closeTop();
   }
 
   function updateViewerContent() {
@@ -681,12 +710,20 @@
     if (filteredProjects.length <= 1) return;
     currentViewerIndex = (currentViewerIndex + 1) % filteredProjects.length;
     updateViewerContent();
+    const project = filteredProjects[currentViewerIndex];
+    if (project && typeof OverlayState !== 'undefined') {
+      OverlayState.replaceViewerId(project.id);
+    }
   }
 
   function viewerPrev() {
     if (filteredProjects.length <= 1) return;
     currentViewerIndex = (currentViewerIndex - 1 + filteredProjects.length) % filteredProjects.length;
     updateViewerContent();
+    const project = filteredProjects[currentViewerIndex];
+    if (project && typeof OverlayState !== 'undefined') {
+      OverlayState.replaceViewerId(project.id);
+    }
   }
 
   // ── Touch Swipe Gestures for Lightbox ─────────────────────
@@ -714,7 +751,7 @@
 
     // Swipe down to dismiss
     if (diffY > 80 && Math.abs(diffX) < 60) {
-      closeViewer();
+      OverlayState.closeTop();
       return;
     }
 
@@ -788,24 +825,299 @@
     }
   }
 
-  // ── Slide-Over Panel Open & Close ─────────────────────────
-  function openPanel(triggerBtn) {
+  // ── Grid Drawer Swipe-Right-to-Close (Phase 3) ─────────────
+  const DrawerSwipeToClose = (function() {
+    // Configurable gesture thresholds
+    const LOCK_DISTANCE = 10;   // px movement before locking direction
+    const CLOSE_RATIO = 0.35;   // fraction of screen width needed to trigger close (35%)
+    const CLOSE_VELOCITY = 0.5; // px/ms flick velocity to trigger close
+    const EDGE_GUARD = 20;      // px from left edge reserved for OS / Safari navigation
+
+    let isAttached = false;
+    let gestureState = 'IDLE'; // 'IDLE' | 'PENDING' | 'DRAGGING' | 'IGNORED'
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchStartTime = 0;
+    let currentDragX = 0;
+    let velocityHistory = [];
+    let rafId = null;
+    let suppressClick = false;
+
+    function prefersReducedMotion() {
+      return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    }
+
+    function isInteractiveElement(target) {
+      if (!target) return false;
+      // Search input & wrap
+      if (target.closest('#gallery-search-input, .gallery-search-wrap, input, textarea')) {
+        return true;
+      }
+      // Chips row & wrap (horizontal scroll area)
+      if (target.closest('#gallery-chips-row, .gallery-panel__chips-row, .gallery-panel__chips-wrap, .gallery-chip')) {
+        return true;
+      }
+      // Filter sheet & backdrop
+      if (target.closest('#gallery-filter-dialog, #gallery-filter-backdrop')) {
+        return true;
+      }
+      return false;
+    }
+
+    function onTouchStart(e) {
+      // Single finger touch only; ignore if viewer or filter bottom sheet is open
+      if (e.touches.length !== 1 || !isPanelOpen || isViewerOpen || isFilterDialogOpen) {
+        return;
+      }
+
+      const touch = e.touches[0];
+
+      // iOS Edge Guard: reserve left edge for Safari native back swipe
+      if (touch.clientX < EDGE_GUARD) return;
+
+      // Do not hijack interactive elements or horizontally scrolling chip strips
+      if (isInteractiveElement(e.target)) return;
+
+      gestureState = 'PENDING';
+      touchStartX = touch.clientX;
+      touchStartY = touch.clientY;
+      touchStartTime = performance.now();
+      currentDragX = 0;
+      velocityHistory = [{ x: touchStartX, t: touchStartTime }];
+    }
+
+    function onTouchMove(e) {
+      if (gestureState === 'IGNORED' || gestureState === 'IDLE') return;
+
+      // Interrupted by multiple fingers
+      if (e.touches.length !== 1) {
+        cancelGesture();
+        return;
+      }
+
+      const touch = e.touches[0];
+      const deltaX = touch.clientX - touchStartX;
+      const deltaY = touch.clientY - touchStartY;
+      const absX = Math.abs(deltaX);
+      const absY = Math.abs(deltaY);
+
+      if (gestureState === 'PENDING') {
+        if (absX >= LOCK_DISTANCE || absY >= LOCK_DISTANCE) {
+          // Lock direction: horizontal distance at least 1.5x vertical, and to the right
+          if (deltaX > 0 && absX >= 1.5 * absY) {
+            gestureState = 'DRAGGING';
+            suppressClick = true;
+            panel.classList.add('is-dragging');
+            panel.style.transition = 'none';
+            panel.style.willChange = 'transform';
+            if (backdropEl) {
+              backdropEl.style.visibility = 'visible';
+              backdropEl.style.transition = 'none';
+              backdropEl.style.willChange = 'opacity';
+            }
+          } else {
+            // Vertical or leftward: release gesture immediately and let native scrolling continue
+            gestureState = 'IGNORED';
+            return;
+          }
+        } else {
+          return; // Within deadzone
+        }
+      }
+
+      if (gestureState === 'DRAGGING') {
+        // Prevent default only once horizontal drag is locked
+        if (e.cancelable) e.preventDefault();
+
+        const now = performance.now();
+        velocityHistory = velocityHistory.filter(p => now - p.t <= 100);
+        velocityHistory.push({ x: touch.clientX, t: now });
+
+        // Clamp drag so it cannot move left of rest position (0)
+        currentDragX = Math.max(0, deltaX);
+
+        if (!rafId) {
+          rafId = requestAnimationFrame(() => {
+            rafId = null;
+            if (gestureState === 'DRAGGING' && panel) {
+              panel.style.transform = `translateX(${currentDragX}px)`;
+              const screenW = window.innerWidth || document.documentElement.clientWidth || 360;
+              const progress = Math.min(1, Math.max(0, currentDragX / screenW));
+              if (backdropEl) {
+                backdropEl.style.opacity = (progress * 0.4).toFixed(3);
+              }
+            }
+          });
+        }
+      }
+    }
+
+    function onTouchEnd(e) {
+      if (gestureState !== 'DRAGGING') {
+        gestureState = 'IDLE';
+        return;
+      }
+
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+
+      gestureState = 'IDLE';
+
+      // Velocity calculation over the last ~100ms
+      let velocity = 0;
+      if (velocityHistory.length >= 2) {
+        const first = velocityHistory[0];
+        const last = velocityHistory[velocityHistory.length - 1];
+        const dt = last.t - first.t;
+        if (dt > 0) {
+          velocity = (last.x - first.x) / dt;
+        }
+      }
+
+      const screenW = window.innerWidth || document.documentElement.clientWidth || 360;
+      const movedRatio = currentDragX / screenW;
+      const shouldClose = movedRatio > CLOSE_RATIO || velocity > CLOSE_VELOCITY;
+
+      if (shouldClose) {
+        // Hand over to close transition from current position and route via Phase 1 module
+        const remaining = Math.max(0, screenW - currentDragX);
+        const duration = prefersReducedMotion()
+          ? 0
+          : Math.min(280, Math.max(160, Math.round((remaining / screenW) * 280)));
+
+        if (duration === 0) {
+          resetStyles();
+          OverlayState.closeTop();
+        } else {
+          panel.style.transition = `transform ${duration}ms cubic-bezier(0.16, 1, 0.3, 1)`;
+          panel.style.transform = `translateX(${screenW}px)`;
+          if (backdropEl) {
+            backdropEl.style.transition = `opacity ${duration}ms ease-out`;
+            backdropEl.style.opacity = '0';
+          }
+          OverlayState.closeTop();
+          setTimeout(() => {
+            resetStyles();
+          }, duration + 30);
+        }
+      } else {
+        // Spring back to 0 with 200 to 250ms ease-out
+        const duration = prefersReducedMotion() ? 0 : 220;
+        if (duration === 0) {
+          resetStyles();
+        } else {
+          panel.style.transition = `transform ${duration}ms cubic-bezier(0.16, 1, 0.3, 1)`;
+          panel.style.transform = 'translateX(0)';
+          if (backdropEl) {
+            backdropEl.style.transition = `opacity ${duration}ms ease-out`;
+            backdropEl.style.opacity = '0';
+          }
+          setTimeout(() => {
+            resetStyles();
+          }, duration + 30);
+        }
+      }
+
+      // Suppress accidental taps when lifting finger after dragging
+      setTimeout(() => {
+        suppressClick = false;
+      }, 120);
+    }
+
+    function onTouchCancel() {
+      cancelGesture();
+    }
+
+    function cancelGesture() {
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+      gestureState = 'IDLE';
+      resetStyles();
+      setTimeout(() => {
+        suppressClick = false;
+      }, 50);
+    }
+
+    function resetStyles() {
+      if (panel) {
+        panel.style.transform = '';
+        panel.style.transition = '';
+        panel.style.willChange = '';
+        panel.classList.remove('is-dragging');
+      }
+      if (backdropEl) {
+        backdropEl.style.visibility = 'hidden';
+        backdropEl.style.opacity = '0';
+        backdropEl.style.transition = '';
+        backdropEl.style.willChange = '';
+      }
+    }
+
+    function onWindowClickCapture(e) {
+      if (suppressClick) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        suppressClick = false;
+      }
+    }
+
+    function attach() {
+      if (isAttached || !panel) return;
+      isAttached = true;
+      gestureState = 'IDLE';
+      panel.addEventListener('touchstart', onTouchStart, { passive: true });
+      panel.addEventListener('touchmove', onTouchMove, { passive: false });
+      panel.addEventListener('touchend', onTouchEnd, { passive: true });
+      panel.addEventListener('touchcancel', onTouchCancel, { passive: true });
+      window.addEventListener('click', onWindowClickCapture, true);
+    }
+
+    function detach() {
+      if (!isAttached || !panel) return;
+      isAttached = false;
+      cancelGesture();
+      panel.removeEventListener('touchstart', onTouchStart);
+      panel.removeEventListener('touchmove', onTouchMove);
+      panel.removeEventListener('touchend', onTouchEnd);
+      panel.removeEventListener('touchcancel', onTouchCancel);
+      window.removeEventListener('click', onWindowClickCapture, true);
+    }
+
+    return {
+      attach,
+      detach,
+      reset: resetStyles
+    };
+  })();
+
+  // ── Slide-Over Panel Open & Close (Direct UI implementation) ─────────
+  function UI_showArchive(options = {}) {
     if (isPanelOpen) return;
     isPanelOpen = true;
-    panelTriggerBtn = triggerBtn || document.activeElement;
+
+    // Reset drag styles and attach touch gesture for mobile
+    DrawerSwipeToClose.reset();
+    DrawerSwipeToClose.attach();
 
     // Ensure filter bottom sheet is closed on open
     closeFilterDialog();
 
     lockBodyScroll();
 
-    // Fresh Fisher-Yates shuffle on every open
-    shuffleGalleryProjects();
+    // Fresh Fisher-Yates shuffle only when requested (not on Back/Forward)
+    if (options.reshuffle !== false) {
+      shuffleGalleryProjects();
+    }
 
     panel.classList.add('is-open');
     panel.setAttribute('aria-hidden', 'false');
 
-    // Populate and apply filters with shuffled order
+    // Populate and apply filters with current order
     renderCategoryControls();
     applyFilters();
 
@@ -819,7 +1131,7 @@
     // Focus panel so keyboard scrolling works immediately
     panel.setAttribute('tabindex', '-1');
     setTimeout(() => {
-      try { panel.focus({ preventScroll: true }); } catch(e) {}
+      try { panel.focus({ preventScroll: true }); } catch (e) {}
     }, 50);
 
     // Focus close button for accessibility without causing page scroll
@@ -832,16 +1144,18 @@
         }
       }
     }, 100);
+
+    if (typeof OverlayState !== 'undefined' && OverlayState.notify) {
+      OverlayState.notify('archive');
+    }
   }
 
-  function closePanel() {
+  function UI_hideArchive() {
     if (!isPanelOpen) return;
 
-    // If lightbox is open, close lightbox first
-    if (isViewerOpen) {
-      closeViewer();
-      return;
-    }
+    // Detach touch gesture listeners and clean up inline styles
+    DrawerSwipeToClose.detach();
+    DrawerSwipeToClose.reset();
 
     if (isFilterDialogOpen) {
       closeFilterDialog();
@@ -863,26 +1177,309 @@
         panelTriggerBtn.focus();
       }
     }
+
+    if (typeof OverlayState !== 'undefined' && OverlayState.notify) {
+      OverlayState.notify('home');
+    }
+  }
+
+  // ── Overlay History & State Management (Phase 1) ───────────
+  const OverlayState = (function() {
+    let currentLayer = 'home'; // 'home' | 'archive' | 'viewer'
+    let currentViewerId = null;
+    let isTransitioning = false;
+    let pendingScrollToTop = false;
+    const listeners = [];
+
+    function getBaseUrl() {
+      return window.location.pathname + window.location.search;
+    }
+
+    function parseHash(hashStr) {
+      const hash = (hashStr !== undefined ? hashStr : window.location.hash || '').replace(/^#/, '').trim();
+      if (!hash.startsWith('archive')) {
+        return { isArchive: false, layer: 'home', id: null };
+      }
+      const rest = hash.slice('archive'.length);
+      if (!rest || rest === '/') {
+        return { isArchive: true, layer: 'archive', id: null };
+      }
+      if (rest.startsWith('/')) {
+        const id = decodeURIComponent(rest.slice(1).trim());
+        if (id) {
+          return { isArchive: true, layer: 'viewer', id };
+        }
+      }
+      return { isArchive: true, layer: 'archive', id: null };
+    }
+
+    function notify(layer, id) {
+      listeners.forEach(fn => {
+        try {
+          fn({ layer, id: id || null });
+        } catch (err) {
+          console.error('[GalleryOverlay] Listener error:', err);
+        }
+      });
+    }
+
+    function subscribe(fn) {
+      if (typeof fn === 'function') {
+        listeners.push(fn);
+        try {
+          fn({ layer: currentLayer, id: currentViewerId });
+        } catch (e) {}
+        return () => {
+          const idx = listeners.indexOf(fn);
+          if (idx !== -1) listeners.splice(idx, 1);
+        };
+      }
+      return () => {};
+    }
+
+    function getState() {
+      return { layer: currentLayer, id: currentViewerId };
+    }
+
+    function applyState(targetState) {
+      const targetLayer = targetState.layer;
+      const targetId = targetState.id || null;
+      const reshuffle = targetState.reshuffle;
+
+      if (targetLayer === 'home') {
+        if (isViewerOpen) {
+          UI_hideViewer();
+        }
+        if (isPanelOpen) {
+          if (pendingScrollToTop) {
+            savedScrollY = 0;
+          }
+          UI_hideArchive();
+        }
+        currentLayer = 'home';
+        currentViewerId = null;
+        notify('home', null);
+
+        if (pendingScrollToTop) {
+          pendingScrollToTop = false;
+          const prevBehavior = document.documentElement.style.scrollBehavior;
+          document.documentElement.style.scrollBehavior = 'auto';
+          window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+          requestAnimationFrame(() => {
+            document.documentElement.style.scrollBehavior = prevBehavior;
+          });
+        }
+      } else if (targetLayer === 'archive') {
+        if (isViewerOpen) {
+          UI_hideViewer();
+        }
+        if (!isPanelOpen) {
+          UI_showArchive({ reshuffle: reshuffle === true });
+        }
+        currentLayer = 'archive';
+        currentViewerId = null;
+        notify('archive', null);
+      } else if (targetLayer === 'viewer') {
+        if (!isPanelOpen) {
+          UI_showArchive({ reshuffle: targetState.isDirectLoad === true });
+        }
+        if (targetId) {
+          UI_showViewer(targetId);
+        }
+        currentLayer = 'viewer';
+        currentViewerId = targetId;
+        notify('viewer', targetId);
+      }
+
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          isTransitioning = false;
+          if (viewerBackBtn) {
+            viewerBackBtn.removeAttribute('aria-disabled');
+          }
+        }, 50);
+      });
+    }
+
+    function syncFromLocation() {
+      const parsed = parseHash();
+      if (!parsed.isArchive) {
+        if (currentLayer !== 'home') {
+          applyState({ layer: 'home' });
+        }
+        return;
+      }
+
+      if (parsed.layer === 'archive') {
+        if (currentLayer !== 'archive') {
+          applyState({ layer: 'archive', reshuffle: false });
+        }
+      } else if (parsed.layer === 'viewer') {
+        const itemExists = allProjects.some(p => p.id === parsed.id);
+        if (itemExists) {
+          if (currentLayer !== 'viewer' || currentViewerId !== parsed.id) {
+            applyState({ layer: 'viewer', id: parsed.id });
+          }
+        } else {
+          // Fallback to #archive if item id not found
+          window.history.replaceState({ layer: 'archive' }, '', getBaseUrl() + '#archive');
+          applyState({ layer: 'archive', reshuffle: false });
+        }
+      }
+    }
+
+    function init() {
+      if ('scrollRestoration' in window.history) {
+        window.history.scrollRestoration = 'manual';
+      }
+
+      const initial = parseHash();
+      if (initial.isArchive) {
+        if (initial.layer === 'archive') {
+          // Synthetic history: [Home] -> [#archive]
+          window.history.replaceState({ layer: 'home' }, '', getBaseUrl());
+          window.history.pushState({ layer: 'archive' }, '', getBaseUrl() + '#archive');
+          applyState({ layer: 'archive', reshuffle: true, isDirectLoad: true });
+        } else if (initial.layer === 'viewer') {
+          const itemExists = allProjects.some(p => p.id === initial.id);
+          if (itemExists) {
+            // Synthetic history: [Home] -> [#archive] -> [#archive/<id>]
+            window.history.replaceState({ layer: 'home' }, '', getBaseUrl());
+            window.history.pushState({ layer: 'archive' }, '', getBaseUrl() + '#archive');
+            window.history.pushState(
+              { layer: 'viewer', id: initial.id },
+              '',
+              getBaseUrl() + '#archive/' + encodeURIComponent(initial.id)
+            );
+            applyState({ layer: 'viewer', id: initial.id, reshuffle: true, isDirectLoad: true });
+          } else {
+            // Invalid item id -> fallback to #archive
+            window.history.replaceState({ layer: 'home' }, '', getBaseUrl());
+            window.history.pushState({ layer: 'archive' }, '', getBaseUrl() + '#archive');
+            applyState({ layer: 'archive', reshuffle: true, isDirectLoad: true });
+          }
+        }
+      }
+
+      window.addEventListener('popstate', () => {
+        syncFromLocation();
+      });
+
+      window.addEventListener('hashchange', () => {
+        syncFromLocation();
+      });
+    }
+
+    function requestOpenArchive(triggerBtn) {
+      if (isTransitioning) return;
+      if (currentLayer === 'archive' || currentLayer === 'viewer') return;
+      isTransitioning = true;
+
+      panelTriggerBtn = triggerBtn || document.activeElement;
+      window.history.pushState({ layer: 'archive' }, '', getBaseUrl() + '#archive');
+      applyState({ layer: 'archive', reshuffle: true });
+    }
+
+    function requestOpenViewer(id, triggerCard) {
+      if (isTransitioning) return;
+      if (currentLayer === 'viewer' && currentViewerId === id) return;
+      isTransitioning = true;
+
+      if (triggerCard) {
+        viewerTriggerCard = triggerCard;
+      }
+
+      if (currentLayer === 'home') {
+        window.history.pushState({ layer: 'archive' }, '', getBaseUrl() + '#archive');
+      }
+
+      window.history.pushState(
+        { layer: 'viewer', id },
+        '',
+        getBaseUrl() + '#archive/' + encodeURIComponent(id)
+      );
+      applyState({ layer: 'viewer', id });
+    }
+
+    function replaceViewerId(id) {
+      if (currentLayer !== 'viewer') return;
+      currentViewerId = id;
+      window.history.replaceState(
+        { layer: 'viewer', id },
+        '',
+        getBaseUrl() + '#archive/' + encodeURIComponent(id)
+      );
+      notify('viewer', id);
+    }
+
+    function closeTop() {
+      if (isTransitioning) return;
+      if (currentLayer === 'home') return;
+      isTransitioning = true;
+      if (viewerBackBtn) {
+        viewerBackBtn.setAttribute('aria-disabled', 'true');
+      }
+      window.history.back();
+    }
+
+    function requestCloseToTop() {
+      if (currentLayer === 'home') {
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+        return;
+      }
+      pendingScrollToTop = true;
+      if (currentLayer === 'viewer') {
+        isTransitioning = true;
+        window.history.go(-2);
+      } else {
+        isTransitioning = true;
+        window.history.back();
+      }
+    }
+
+    return {
+      init,
+      requestOpenArchive,
+      requestOpenViewer,
+      replaceViewerId,
+      closeTop,
+      requestCloseToTop,
+      getState,
+      subscribe,
+      notify
+    };
+  })();
+
+  // ── Public API for Overlay Integrations (Phases 1, 2 & 3) ───
+  window.GalleryOverlay = {
+    closeTop: () => OverlayState.closeTop(),
+    openArchive: (triggerBtn) => OverlayState.requestOpenArchive(triggerBtn),
+    openViewer: (id, triggerCard) => OverlayState.requestOpenViewer(id, triggerCard),
+    getState: () => OverlayState.getState(),
+    onLayerChange: (fn) => OverlayState.subscribe(fn)
+  };
+
+  function openPanel(triggerBtn) {
+    OverlayState.requestOpenArchive(triggerBtn);
+  }
+
+  function closePanel() {
+    OverlayState.closeTop();
   }
 
   // ── Keyboard Navigation & Focus Trap ──────────────────────
   function setupKeyboardHandling() {
     window.addEventListener('keydown', (e) => {
-      // Escape key closes topmost layer
+      // Escape key closes topmost layer via history.back()
       if (e.key === 'Escape') {
-        if (isViewerOpen) {
-          e.preventDefault();
-          closeViewer();
-          return;
-        }
         if (isFilterDialogOpen) {
           e.preventDefault();
           closeFilterDialog();
           return;
         }
-        if (isPanelOpen) {
+        if (isViewerOpen || isPanelOpen) {
           e.preventDefault();
-          closePanel();
+          OverlayState.closeTop();
           return;
         }
       }
@@ -944,26 +1541,15 @@
 
     // 2. Panel close
     if (panelCloseBtn) {
-      panelCloseBtn.addEventListener('click', closePanel);
+      panelCloseBtn.addEventListener('click', () => OverlayState.closeTop());
     }
 
-    // 2b. Mobile logo home-link: close drawer, then navigate to #top (no smooth scroll)
+    // 2b. Mobile logo home-link: close drawer via history.back() and land at top of home page
     const logoLink = document.getElementById('gallery-panel-logo');
     if (logoLink) {
       logoLink.addEventListener('click', (e) => {
         e.preventDefault();
-        // Close the drawer (restores body scroll and scroll position) then jump to top
-        if (isPanelOpen) {
-          closePanel();
-        }
-        // Disable smooth scroll, jump to top, then restore whatever behavior was set
-        const prevBehavior = document.documentElement.style.scrollBehavior;
-        document.documentElement.style.scrollBehavior = 'auto';
-        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-        // Restore in next frame so CSS smooth-scroll re-enables after the jump
-        requestAnimationFrame(() => {
-          document.documentElement.style.scrollBehavior = prevBehavior;
-        });
+        OverlayState.requestCloseToTop();
       });
     }
 
@@ -1021,8 +1607,13 @@
       emptyResetBtn.addEventListener('click', resetAllFilters);
     }
 
-    // 6. Viewer controls
-    if (viewerCloseBtn) viewerCloseBtn.addEventListener('click', closeViewer);
+    // 6. Viewer controls (Phase 2 Back arrow)
+    if (viewerBackBtn) {
+      viewerBackBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        OverlayState.closeTop();
+      });
+    }
     if (viewerPrevBtn) viewerPrevBtn.addEventListener('click', viewerPrev);
     if (viewerNextBtn) viewerNextBtn.addEventListener('click', viewerNext);
 
@@ -1033,32 +1624,8 @@
     setupChipsScrollBehavior();
     updateHeaderHeights();
 
-    // 8. Hash deep link support
-    checkHashDeepLink();
-    window.addEventListener('hashchange', checkHashDeepLink);
-  }
-
-  // ── URL Hash Deep Linking ─────────────────────────────────
-  function checkHashDeepLink() {
-    const rawHash = (window.location.hash || '').replace(/^#/, '').trim();
-    if (!rawHash) return;
-
-    let targetId = rawHash;
-    if (rawHash.startsWith('project=')) {
-      targetId = rawHash.replace('project=', '');
-    } else if (rawHash.startsWith('project-') && !allProjects.some(p => p.id === rawHash)) {
-      targetId = rawHash.replace('project-', '');
-    }
-
-    const found = allProjects.find(p => p.id === targetId || p.id === rawHash);
-    if (found) {
-      if (!isPanelOpen) {
-        openPanel();
-      }
-      setTimeout(() => {
-        openViewerById(found.id);
-      }, 60);
-    }
+    // 8. Overlay State & Browser History Layer (Phase 1)
+    OverlayState.init();
   }
 
   // ── Header & Strip Heights Measurement ────────────────────
